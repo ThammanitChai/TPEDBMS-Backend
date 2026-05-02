@@ -35,7 +35,7 @@ const registerUser = async (req, res, next) => {
       email: user.email,
       role: user.role,
       phone: user.phone,
-      token: generateToken(user._id),
+      token: generateToken(user),
     });
   } catch (error) {
     next(error);
@@ -61,7 +61,7 @@ const loginUser = async (req, res, next) => {
         role: user.role,
         phone: user.phone,
         avatar: user.avatar,
-        token: generateToken(user._id),
+        token: generateToken(user),
       });
     } else {
       res.status(401).json({ message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
