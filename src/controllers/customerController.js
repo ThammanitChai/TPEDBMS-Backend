@@ -27,6 +27,7 @@ const getCustomers = async (req, res, next) => {
 
     const customers = await Customer.find(query)
       .populate('salesPerson', 'name email')
+      .select('-visits')
       .sort({ createdAt: -1 });
 
     res.json(customers);
@@ -246,7 +247,12 @@ const getDashboardStats = async (req, res, next) => {
         $project: {
           companyName: 1,
           contactPerson: 1,
-          visit: '$visits',
+          visit: {
+            _id: '$visits._id',
+            visitDate: '$visits.visitDate',
+            notes: '$visits.notes',
+            status: '$visits.status',
+          },
           salesName: '$sales.name',
         },
       },
