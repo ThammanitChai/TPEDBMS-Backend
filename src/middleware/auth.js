@@ -15,7 +15,7 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.id).select('-password');
 
-    if (!req.user || !req.user.isActive) {
+    if (!req.user || !req.user.isActive || req.user.isArchived) {
       return res.status(401).json({ message: 'ผู้ใช้ไม่ถูกต้องหรือถูกระงับ' });
     }
 
@@ -25,12 +25,22 @@ const protect = async (req, res, next) => {
   }
 };
 
+// admin + superadmin
 const adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'superadmin')) {
     next();
   } else {
     res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบเท่านั้น' });
   }
 };
 
-module.exports = { protect, adminOnly };
+// superadmin only
+const superAdminOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'superadmin') {
+    next();
+  } else {
+    res.status(403).json({ message: 'เฉพาะ Super Admin เท่านั้น' });
+  }
+};
+
+module.exports = { protect, adminOnly, superAdminOnly };

@@ -13,6 +13,7 @@ const getCustomers = async (req, res, next) => {
     if (req.user.role === 'sales') {
       query.salesPerson = req.user._id;
     }
+    query.isArchived = { $ne: true };
 
     if (search) {
       query.$or = [
@@ -58,14 +59,30 @@ const getCustomerById = async (req, res, next) => {
   }
 };
 
+const generateCustomerCode = async () => {
+  const year = new Date().getFullYear();
+  const prefix = `TP-${year}-`;
+  const last = await Customer.findOne(
+    { customerCode: { $regex: `^${prefix}` } },
+    { customerCode: 1 },
+    { sort: { customerCode: -1 } }
+  );
+  const seq = last
+    ? parseInt(last.customerCode.replace(prefix, ''), 10) + 1
+    : 1;
+  return `${prefix}${String(seq).padStart(4, '0')}`;
+};
+
 // @desc    Create customer
 // @route   POST /api/customers
 // @access  Private
 const createCustomer = async (req, res, next) => {
   try {
+    const customerCode = await generateCustomerCode();
     const customerData = {
       ...req.body,
       salesPerson: req.user._id,
+      customerCode,
     };
 
     const customer = await Customer.create(customerData);
@@ -137,7 +154,8 @@ const deleteCustomer = async (req, res, next) => {
       return res.status(403).json({ message: 'ไม่มีสิทธิ์ลบ' });
     }
 
-    await customer.deleteOne();
+    customer.isArchived = true;
+    await customer.save();
     res.json({ message: 'ลบลูกค้าเรียบร้อย' });
   } catch (error) {
     next(error);
@@ -246,6 +264,74 @@ const getDashboardStats = async (req, res, next) => {
   }
 };
 
+// @desc    Get calendar data (visits + appointments for a month)
+// @route   GET /api/customers/calendar
+// @access  Private
+const getCalendar = async (req, res, next) => {
+  try {
+    const { year, month } = req.query;
+    const y = parseInt(year) || new Date().getFullYear();
+    const m = parseInt(month) || new Date().getMonth() + 1;
+
+    const startDate = new Date(y, m - 1, 1);
+    const endDate = new Date(y, m, 0, 23, 59, 59);
+
+    const baseMatch = req.user.role === 'sales'
+      ? { salesPerson: req.user._id }
+      : {};
+
+    const visits = await Customer.aggregate([
+      { $match: baseMatch },
+      { $unwind: '$visits' },
+      { $match: { 'visits.visitDate': { $gte: startDate, $lte: endDate } } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'salesPerson',
+          foreignField: '_id',
+          as: 'sales',
+        },
+      },
+      { $unwind: { path: '$sales', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          date: '$visits.visitDate',
+          companyName: 1,
+          notes: '$visits.notes',
+          salesName: '$sales.name',
+        },
+      },
+      { $sort: { date: 1 } },
+    ]);
+
+    const appointmentDocs = await Customer.find({
+      ...baseMatch,
+      nextVisitDate: { $gte: startDate, $lte: endDate },
+    })
+      .populate('salesPerson', 'name')
+      .select('companyName nextVisitDate contactPerson salesPerson _id');
+
+    res.json({
+      visits: visits.map((v) => ({
+        date: v.date,
+        customerId: v._id,
+        companyName: v.companyName,
+        salesName: v.salesName || '',
+        notes: v.notes || '',
+      })),
+      appointments: appointmentDocs.map((a) => ({
+        date: a.nextVisitDate,
+        customerId: a._id,
+        companyName: a.companyName,
+        salesName: a.salesPerson?.name || '',
+        contactPerson: a.contactPerson,
+      })),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getCustomers,
   getCustomerById,
@@ -254,4 +340,5 @@ module.exports = {
   deleteCustomer,
   addVisit,
   getDashboardStats,
+  getCalendar,
 };

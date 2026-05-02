@@ -4,9 +4,17 @@ const generateToken = require('../utils/generateToken');
 // @desc    Register new user
 // @route   POST /api/auth/register
 // @access  Public (or Admin only in production)
+const SUPERADMIN_CODE = 'TPEDBMS_ADMIN';
+
 const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, role, phone } = req.body;
+    const { name, email, password, role, phone, adminCode } = req.body;
+
+    if (role === 'superadmin') {
+      if (adminCode !== SUPERADMIN_CODE) {
+        return res.status(400).json({ message: 'รหัสพิเศษ Super Admin ไม่ถูกต้อง' });
+      }
+    }
 
     const userExists = await User.findOne({ email });
     if (userExists) {

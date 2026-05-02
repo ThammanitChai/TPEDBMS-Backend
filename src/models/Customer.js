@@ -21,6 +21,11 @@ const visitSchema = new mongoose.Schema(
 
 const customerSchema = new mongoose.Schema(
   {
+    customerCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     companyName: {
       type: String,
       required: [true, 'กรุณากรอกชื่อบริษัท'],
@@ -50,6 +55,10 @@ const customerSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    mapLink: {
+      type: String,
+      default: '',
+    },
     location: {
       lat: { type: Number, default: 13.7563 },
       lng: { type: Number, default: 100.5018 },
@@ -74,6 +83,10 @@ const customerSchema = new mongoose.Schema(
       required: true,
     },
     tags: [String],
+    isArchived: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

@@ -12,13 +12,22 @@ const seedData = async () => {
     await User.deleteMany({});
     await Customer.deleteMany({});
 
+    // Create superadmin
+    await User.create({
+      name: 'Thammanit_Chai',
+      email: 'thammanit@tpedbms.com',
+      password: 'TPEDBMS_ADMIN',
+      role: 'superadmin',
+      phone: '0800000000',
+    });
+
     // Create admin
     const admin = await User.create({
       name: 'Admin',
       email: 'admin@company.com',
       password: 'admin123',
       role: 'admin',
-      phone: '0800000000',
+      phone: '0800000001',
     });
 
     // Create sales
@@ -106,6 +115,7 @@ const seedData = async () => {
     ]);
 
     console.log('✅ Seed completed!');
+    console.log('👑 SuperAdmin: thammanit@tpedbms.com / TPEDBMS_ADMIN');
     console.log('📧 Admin: admin@company.com / admin123');
     console.log('📧 Sales: somchai@company.com / sales123');
     console.log('📧 Sales: somying@company.com / sales123');
