@@ -8,22 +8,31 @@ const getAllSales = async (req, res, next) => {
   try {
     const sales = await User.find({ role: 'sales', isArchived: { $ne: true } }).select('-password');
 
-    const salesWithStats = await Promise.all(
-      sales.map(async (s) => {
-        const customers = await Customer.find({ salesPerson: s._id, isArchived: { $ne: true } });
-        const totalVisits = customers.reduce((acc, c) => acc + (c.visits ? c.visits.length : 0), 0);
-        const lastVisit = customers
-          .flatMap((c) => c.visits || [])
-          .sort((a, b) => new Date(b.visitDate) - new Date(a.visitDate))[0];
+    // Single aggregation across all sales users — avoids loading photos
+    const statsAgg = await Customer.aggregate([
+      { $match: { isArchived: { $ne: true } } },
+      {
+        $group: {
+          _id: '$salesPerson',
+          customerCount: { $sum: 1 },
+          totalVisits: { $sum: { $size: { $ifNull: ['$visits', []] } } },
+          lastVisitDate: { $max: '$visits.visitDate' },
+        },
+      },
+    ]);
 
-        return {
-          ...s.toObject(),
-          customerCount: customers.length,
-          totalVisits,
-          lastVisitDate: lastVisit ? lastVisit.visitDate : null,
-        };
-      })
-    );
+    const statsMap = {};
+    statsAgg.forEach((s) => { statsMap[s._id.toString()] = s; });
+
+    const salesWithStats = sales.map((s) => {
+      const stat = statsMap[s._id.toString()] || {};
+      return {
+        ...s.toObject(),
+        customerCount: stat.customerCount || 0,
+        totalVisits: stat.totalVisits || 0,
+        lastVisitDate: stat.lastVisitDate || null,
+      };
+    });
 
     res.json(salesWithStats);
   } catch (error) {
@@ -49,7 +58,7 @@ const getSalesDetail = async (req, res, next) => {
       ];
     }
 
-    const customers = await Customer.find(query).sort({ createdAt: -1 });
+    const customers = await Customer.find(query).select('-visits').sort({ createdAt: -1 });
     res.json({ sales, customers });
   } catch (error) {
     next(error);

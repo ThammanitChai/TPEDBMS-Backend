@@ -85,71 +85,42 @@ const getSaleStats = async (req, res, next) => {
       match.salesPerson = new mongoose.Types.ObjectId(salesPersonId);
     }
 
-    const [totals] = await Sale.aggregate([
-      { $match: match },
-      {
-        $group: {
-          _id: null,
-          totalAmount: { $sum: '$amount' },
-          totalOrders: { $sum: 1 },
-          totalQty: { $sum: '$quantity' },
-        },
-      },
+    const [
+      [totalsRow],
+      byProduct,
+      byCustomerType,
+      byMonth,
+      byProvince,
+    ] = await Promise.all([
+      Sale.aggregate([
+        { $match: match },
+        { $group: { _id: null, totalAmount: { $sum: '$amount' }, totalOrders: { $sum: 1 }, totalQty: { $sum: '$quantity' } } },
+      ]),
+      Sale.aggregate([
+        { $match: match },
+        { $group: { _id: '$product', totalAmount: { $sum: '$amount' }, totalOrders: { $sum: 1 }, totalQty: { $sum: '$quantity' } } },
+        { $sort: { totalAmount: -1 } },
+        { $limit: 10 },
+      ]),
+      Sale.aggregate([
+        { $match: match },
+        { $group: { _id: '$customerType', totalAmount: { $sum: '$amount' }, totalOrders: { $sum: 1 } } },
+        { $sort: { totalAmount: -1 } },
+      ]),
+      Sale.aggregate([
+        { $match: match },
+        { $group: { _id: { year: { $year: '$date' }, month: { $month: '$date' } }, totalAmount: { $sum: '$amount' }, totalOrders: { $sum: 1 } } },
+        { $sort: { '_id.year': 1, '_id.month': 1 } },
+      ]),
+      Sale.aggregate([
+        { $match: match },
+        { $group: { _id: '$province', totalAmount: { $sum: '$amount' }, totalOrders: { $sum: 1 } } },
+        { $sort: { totalAmount: -1 } },
+        { $limit: 10 },
+      ]),
     ]);
 
-    const byProduct = await Sale.aggregate([
-      { $match: match },
-      {
-        $group: {
-          _id: '$product',
-          totalAmount: { $sum: '$amount' },
-          totalOrders: { $sum: 1 },
-          totalQty: { $sum: '$quantity' },
-        },
-      },
-      { $sort: { totalAmount: -1 } },
-      { $limit: 10 },
-    ]);
-
-    const byCustomerType = await Sale.aggregate([
-      { $match: match },
-      {
-        $group: {
-          _id: '$customerType',
-          totalAmount: { $sum: '$amount' },
-          totalOrders: { $sum: 1 },
-        },
-      },
-      { $sort: { totalAmount: -1 } },
-    ]);
-
-    const byMonth = await Sale.aggregate([
-      { $match: match },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$date' },
-            month: { $month: '$date' },
-          },
-          totalAmount: { $sum: '$amount' },
-          totalOrders: { $sum: 1 },
-        },
-      },
-      { $sort: { '_id.year': 1, '_id.month': 1 } },
-    ]);
-
-    const byProvince = await Sale.aggregate([
-      { $match: match },
-      {
-        $group: {
-          _id: '$province',
-          totalAmount: { $sum: '$amount' },
-          totalOrders: { $sum: 1 },
-        },
-      },
-      { $sort: { totalAmount: -1 } },
-      { $limit: 10 },
-    ]);
+    const totals = totalsRow;
 
     res.json({
       totals: totals || { totalAmount: 0, totalOrders: 0, totalQty: 0 },

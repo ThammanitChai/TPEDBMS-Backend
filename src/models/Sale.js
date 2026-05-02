@@ -20,4 +20,7 @@ const saleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+saleSchema.index({ salesPerson: 1, date: -1 });
+saleSchema.index({ date: -1 });
+
 module.exports = mongoose.model('Sale', saleSchema);
