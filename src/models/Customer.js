@@ -1,0 +1,83 @@
+const mongoose = require('mongoose');
+
+const visitSchema = new mongoose.Schema(
+  {
+    visitDate: {
+      type: Date,
+      required: true,
+    },
+    notes: {
+      type: String,
+      default: '',
+    },
+    status: {
+      type: String,
+      enum: ['planned', 'completed', 'cancelled'],
+      default: 'completed',
+    },
+  },
+  { timestamps: true }
+);
+
+const customerSchema = new mongoose.Schema(
+  {
+    companyName: {
+      type: String,
+      required: [true, 'กรุณากรอกชื่อบริษัท'],
+      trim: true,
+    },
+    contactPerson: {
+      type: String,
+      required: [true, 'กรุณากรอกชื่อผู้ติดต่อ'],
+      trim: true,
+    },
+    phone: {
+      type: String,
+      required: [true, 'กรุณากรอกเบอร์โทร'],
+      trim: true,
+    },
+    email: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      default: '',
+    },
+    companyImage: {
+      type: String,
+      default: '',
+    },
+    address: {
+      type: String,
+      default: '',
+    },
+    location: {
+      lat: { type: Number, default: 13.7563 },
+      lng: { type: Number, default: 100.5018 },
+    },
+    followUpDetails: {
+      type: String,
+      default: '',
+    },
+    visits: [visitSchema],
+    nextVisitDate: {
+      type: Date,
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: ['lead', 'prospect', 'customer', 'inactive'],
+      default: 'lead',
+    },
+    salesPerson: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    tags: [String],
+  },
+  { timestamps: true }
+);
+
+customerSchema.index({ companyName: 'text', contactPerson: 'text' });
+
+module.exports = mongoose.model('Customer', customerSchema);
