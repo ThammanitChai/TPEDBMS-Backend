@@ -24,6 +24,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/customers', require('./routes/customerRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/sales', require('./routes/saleRoutes'));
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'OK', message: 'CRM Backend Running' });
