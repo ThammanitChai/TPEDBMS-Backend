@@ -25,6 +25,12 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/customers', require('./routes/customerRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/sales', require('./routes/saleRoutes'));
+app.use('/api/sale-requests', require('./routes/saleRequestRoutes'));
+app.use('/api/deals', require('./routes/dealRoutes'));
+app.use('/api/marketing', require('./routes/marketingRoutes'));
+app.use('/api/service-jobs', require('./routes/serviceJobRoutes'));
+app.use('/api/deliveries', require('./routes/deliveryRoutes'));
+app.use('/api/projects', require('./routes/projectRoutes'));
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'OK', message: 'CRM Backend Running' });

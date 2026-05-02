@@ -17,12 +17,17 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['visit_reminder', 'follow_up', 'system', 'new_customer'],
+      enum: ['visit_reminder', 'follow_up', 'system', 'new_customer', 'sale_request', 'sale_approved', 'sale_rejected'],
       default: 'system',
     },
     relatedCustomer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Customer',
+      default: null,
+    },
+    relatedSaleRequest: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SaleRequest',
       default: null,
     },
     isRead: {

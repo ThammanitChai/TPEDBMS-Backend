@@ -13,7 +13,7 @@ const protect = (req, res, next) => {
     if (!decoded.isActive) return res.status(401).json({ message: 'บัญชีถูกระงับ' });
 
     // Use JWT payload directly — no DB round-trip on every request
-    req.user = { _id: decoded.id, id: decoded.id, role: decoded.role, name: decoded.name, isActive: decoded.isActive };
+    req.user = { _id: decoded.id, id: decoded.id, role: decoded.role, name: decoded.name, isActive: decoded.isActive, department: decoded.department || '', salesDivision: decoded.salesDivision || '' };
     next();
   } catch {
     res.status(401).json({ message: 'Token ไม่ถูกต้อง' });

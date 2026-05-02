@@ -43,6 +43,16 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    department: {
+      type: String,
+      enum: ['ฝ่ายขาย', 'ฝ่ายการตลาด', 'ฝ่ายช่าง', 'ฝ่ายขนส่ง', 'ทีมโปรเจกต์', ''],
+      default: '',
+    },
+    salesDivision: {
+      type: String,
+      enum: ['อุตสาหกรรม', 'ครัวเรือน', ''],
+      default: '',
+    },
   },
   { timestamps: true }
 );

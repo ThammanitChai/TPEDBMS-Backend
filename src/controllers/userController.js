@@ -163,6 +163,35 @@ const updateUserRole = async (req, res, next) => {
   }
 };
 
+// @desc    Update user department & salesDivision — Admin/SuperAdmin
+// @route   PATCH /api/users/:id/department
+// @access  Admin
+const updateUserDepartment = async (req, res, next) => {
+  try {
+    const { department, salesDivision } = req.body;
+    const validDepts = ['ฝ่ายขาย', 'ฝ่ายการตลาด', 'ฝ่ายช่าง', 'ฝ่ายขนส่ง', 'ทีมโปรเจกต์', ''];
+    const validDivisions = ['อุตสาหกรรม', 'ครัวเรือน', ''];
+
+    if (department !== undefined && !validDepts.includes(department)) {
+      return res.status(400).json({ message: 'แผนกไม่ถูกต้อง' });
+    }
+    if (salesDivision !== undefined && !validDivisions.includes(salesDivision)) {
+      return res.status(400).json({ message: 'แผนกขายไม่ถูกต้อง' });
+    }
+
+    const target = await User.findById(req.params.id);
+    if (!target) return res.status(404).json({ message: 'ไม่พบผู้ใช้' });
+
+    if (department !== undefined) target.department = department;
+    if (salesDivision !== undefined) target.salesDivision = salesDivision;
+    await target.save();
+
+    res.json({ message: 'อัปเดตแผนกแล้ว', user: target });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllSales,
   getSalesDetail,
@@ -171,4 +200,5 @@ module.exports = {
   archiveUser,
   restoreUser,
   updateUserRole,
+  updateUserDepartment,
 };
