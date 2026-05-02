@@ -51,8 +51,8 @@ const loginUser = async (req, res, next) => {
     const user = await User.findOne({ email }).select('+password');
 
     if (user && (await user.matchPassword(password))) {
-      if (!user.isActive) {
-        return res.status(403).json({ message: 'บัญชีของคุณถูกระงับ' });
+      if (!user.isActive || user.isArchived) {
+        return res.status(403).json({ message: 'บัญชีของคุณถูกระงับหรือถูกลบออกจากระบบ' });
       }
       res.json({
         _id: user._id,
