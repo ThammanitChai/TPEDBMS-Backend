@@ -15,6 +15,10 @@ const visitSchema = new mongoose.Schema(
       enum: ['planned', 'completed', 'cancelled'],
       default: 'completed',
     },
+    photos: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );
