@@ -76,6 +76,7 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    allowedMenus: { type: [String], default: [] },
   },
   { timestamps: true }
 );

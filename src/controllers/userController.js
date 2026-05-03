@@ -310,6 +310,27 @@ const getColleagues = async (req, res, next) => {
   }
 };
 
+// @desc    Update allowed menus for a sales user — Admin/SuperAdmin
+// @route   PATCH /api/users/:id/menus
+// @access  Admin
+const updateUserMenus = async (req, res, next) => {
+  try {
+    const { allowedMenus } = req.body;
+    if (!Array.isArray(allowedMenus)) {
+      return res.status(400).json({ message: 'allowedMenus ต้องเป็น array' });
+    }
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { allowedMenus },
+      { new: true }
+    ).select('-password');
+    if (!user) return res.status(404).json({ message: 'ไม่พบผู้ใช้' });
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDirectory,
   getAllSales,
@@ -324,4 +345,5 @@ module.exports = {
   getMe,
   updateMe,
   getColleagues,
+  updateUserMenus,
 };

@@ -61,6 +61,7 @@ const loginUser = async (req, res, next) => {
         role: user.role,
         phone: user.phone,
         avatar: user.avatar,
+        allowedMenus: user.allowedMenus || [],
         token: generateToken(user),
       });
     } else {
