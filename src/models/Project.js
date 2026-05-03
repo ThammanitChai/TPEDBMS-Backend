@@ -10,7 +10,7 @@ const projectSchema = new mongoose.Schema(
   {
     projectName: { type: String, required: true },
     budget: { type: Number, default: 0 },
-    teamMembers: { type: [String], default: [] },
+    teamMembers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     startDate: { type: Date },
     endDate: { type: Date },
     milestones: { type: [milestoneSchema], default: [] },

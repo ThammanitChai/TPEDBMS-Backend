@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getDirectory,
   getAllSales,
   getSalesDetail,
   getAllUsers,
@@ -16,6 +17,7 @@ const {
 } = require('../controllers/userController');
 const { protect, adminOnly, superAdminOnly } = require('../middleware/auth');
 
+router.get('/directory', protect, getDirectory);
 router.get('/me', protect, getMe);
 router.patch('/me', protect, updateMe);
 router.get('/colleagues', protect, getColleagues);

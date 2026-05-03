@@ -240,6 +240,20 @@ const updateSalesProfile = async (req, res, next) => {
   }
 };
 
+// @desc    Get all active users for directory / multi-select (no salary data)
+// @route   GET /api/users/directory
+// @access  Private (all roles)
+const getDirectory = async (req, res, next) => {
+  try {
+    const users = await User.find({ isArchived: { $ne: true } })
+      .select('name avatar title department salesDivision zone role')
+      .sort({ department: 1, name: 1 });
+    res.json(users);
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get own profile
 // @route   GET /api/users/me
 // @access  Private
@@ -297,6 +311,7 @@ const getColleagues = async (req, res, next) => {
 };
 
 module.exports = {
+  getDirectory,
   getAllSales,
   getSalesDetail,
   getAllUsers,

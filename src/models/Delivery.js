@@ -15,6 +15,8 @@ const deliverySchema = new mongoose.Schema(
     },
     notes: { type: String, default: '' },
     recipientConfirmed: { type: Boolean, default: false },
+    responsibleUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    relatedDeal: { type: String, default: '' },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }
