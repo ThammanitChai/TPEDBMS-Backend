@@ -32,6 +32,7 @@ app.use('/api/service-jobs', require('./routes/serviceJobRoutes'));
 app.use('/api/deliveries', require('./routes/deliveryRoutes'));
 app.use('/api/projects', require('./routes/projectRoutes'));
 app.use('/api/comments', require('./routes/commentRoutes'));
+app.use('/api/workplan', require('./routes/workPlanRoutes'));
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'OK', message: 'CRM Backend Running' });
