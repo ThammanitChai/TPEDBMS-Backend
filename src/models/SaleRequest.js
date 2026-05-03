@@ -9,16 +9,8 @@ const saleRequestSchema = new mongoose.Schema(
     quantity: { type: Number, default: 1, min: 1 },
     amount: { type: Number, required: true, min: 0 },
     customerType: { type: String, default: '' },
-    platform: {
-      type: String,
-      enum: ['ลูกค้าโครงการ', 'ลูกค้าออนไลน์', 'ลูกค้าหน้าร้าน', 'สมาชิกช่าง', 'ลูกค้า B2B', 'งานแสดงสินค้า', 'อื่นๆ'],
-      default: null,
-    },
-    customerChannel: {
-      type: String,
-      enum: ['Facebook', 'Line Official', 'Shopee', 'Lazada', 'Google / Search', 'แนะนำจากคนรู้จัก', 'ลูกค้าเดิม', 'โทรเข้ามาเอง', 'อื่นๆ'],
-      default: null,
-    },
+    platform: { type: String, default: '' },
+    customerChannel: { type: String, default: '' },
     hasDelivery: { type: Boolean, default: false },
     notes: { type: String, default: '' },
     status: {

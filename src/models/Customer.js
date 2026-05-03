@@ -78,8 +78,8 @@ const customerSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['lead', 'prospect', 'customer', 'inactive'],
-      default: 'lead',
+      enum: ['lead', 'prospect', 'customer', 'inactive', 'กำลังติดตาม', 'ลูกค้าของเรา', 'ยกเลิกติดตาม', 'หนี้เสีย'],
+      default: 'กำลังติดตาม',
     },
     salesPerson: {
       type: mongoose.Schema.Types.ObjectId,
@@ -91,6 +91,7 @@ const customerSchema = new mongoose.Schema(
       default: [],
     },
     tags: [String],
+    creditType: { type: String, default: '' },
     isArchived: {
       type: Boolean,
       default: false,
