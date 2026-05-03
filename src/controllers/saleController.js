@@ -76,12 +76,12 @@ const deleteSale = async (req, res, next) => {
 
 const getSaleStats = async (req, res, next) => {
   try {
+    const mongoose = require('mongoose');
     const { salesPersonId, from, to } = req.query;
     let match = {};
     if (req.user.role === 'sales') {
-      match.salesPerson = req.user._id;
+      match.salesPerson = new mongoose.Types.ObjectId(req.user._id);
     } else if (salesPersonId) {
-      const mongoose = require('mongoose');
       match.salesPerson = new mongoose.Types.ObjectId(salesPersonId);
     }
     if (from || to) {
