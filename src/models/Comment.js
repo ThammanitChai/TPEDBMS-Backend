@@ -10,7 +10,12 @@ const commentSchema = new mongoose.Schema(
     targetUser: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null,
+    },
+    targetCustomer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Customer',
+      default: null,
     },
     text: {
       type: String,
@@ -22,5 +27,6 @@ const commentSchema = new mongoose.Schema(
 );
 
 commentSchema.index({ targetUser: 1, createdAt: -1 });
+commentSchema.index({ targetCustomer: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Comment', commentSchema);

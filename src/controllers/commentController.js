@@ -1,24 +1,37 @@
 const Comment = require('../models/Comment');
 const User = require('../models/User');
+const Customer = require('../models/Customer');
 const Notification = require('../models/Notification');
 
-// @desc    Get comments for a target user
-// @route   GET /api/comments?targetUserId=:id
-// @access  Admin (or self)
+// @desc    Get comments — by targetUserId OR targetCustomerId
+// @route   GET /api/comments?targetUserId=:id  OR  ?targetCustomerId=:id
+// @access  Private
 const getComments = async (req, res, next) => {
   try {
-    const { targetUserId } = req.query;
-    if (!targetUserId) return res.status(400).json({ message: 'ต้องระบุ targetUserId' });
-
-    // Only admin/superadmin or the target user can view their comments
-    if (
-      req.user.role === 'sales' &&
-      req.user._id.toString() !== targetUserId
-    ) {
-      return res.status(403).json({ message: 'ไม่มีสิทธิ์' });
+    const { targetUserId, targetCustomerId } = req.query;
+    if (!targetUserId && !targetCustomerId) {
+      return res.status(400).json({ message: 'ต้องระบุ targetUserId หรือ targetCustomerId' });
     }
 
-    const comments = await Comment.find({ targetUser: targetUserId })
+    let query = {};
+    if (targetUserId) {
+      // Sales can only read their own comments; admin can read anyone's
+      if (req.user.role === 'sales' && req.user._id.toString() !== targetUserId) {
+        return res.status(403).json({ message: 'ไม่มีสิทธิ์' });
+      }
+      query.targetUser = targetUserId;
+    } else {
+      // For customer comments: sales can read if they own the customer
+      if (req.user.role === 'sales') {
+        const cust = await Customer.findById(targetCustomerId).select('salesPerson');
+        if (!cust || cust.salesPerson.toString() !== req.user._id.toString()) {
+          return res.status(403).json({ message: 'ไม่มีสิทธิ์' });
+        }
+      }
+      query.targetCustomer = targetCustomerId;
+    }
+
+    const comments = await Comment.find(query)
       .populate('author', 'name email avatar role')
       .sort({ createdAt: -1 });
 
@@ -28,40 +41,59 @@ const getComments = async (req, res, next) => {
   }
 };
 
-// @desc    Create comment targeting a user
+// @desc    Create comment (target user OR customer)
 // @route   POST /api/comments
 // @access  Admin / SuperAdmin
 const createComment = async (req, res, next) => {
   try {
-    const { targetUserId, text } = req.body;
+    const { targetUserId, targetCustomerId, text } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: 'กรุณากรอกข้อความ' });
-    if (!targetUserId) return res.status(400).json({ message: 'ต้องระบุผู้รับ' });
+    if (!targetUserId && !targetCustomerId) {
+      return res.status(400).json({ message: 'ต้องระบุผู้รับ' });
+    }
 
-    const target = await User.findById(targetUserId).select('name');
-    if (!target) return res.status(404).json({ message: 'ไม่พบผู้ใช้' });
-
-    const comment = await Comment.create({
+    const commentData = {
       author: req.user._id,
-      targetUser: targetUserId,
       text: text.trim(),
-    });
+    };
 
+    let notifyUserId = null;
+    let notifyTitle = 'มีข้อความถึงคุณ';
+
+    if (targetUserId) {
+      const target = await User.findById(targetUserId).select('name');
+      if (!target) return res.status(404).json({ message: 'ไม่พบผู้ใช้' });
+      commentData.targetUser = targetUserId;
+      notifyUserId = targetUserId;
+    } else {
+      const cust = await Customer.findById(targetCustomerId)
+        .select('companyName salesPerson')
+        .populate('salesPerson', '_id');
+      if (!cust) return res.status(404).json({ message: 'ไม่พบลูกค้า' });
+      commentData.targetCustomer = targetCustomerId;
+      notifyUserId = cust.salesPerson?._id;
+      notifyTitle = `Comment บนลูกค้า: ${cust.companyName}`;
+    }
+
+    const comment = await Comment.create(commentData);
     await comment.populate('author', 'name email avatar role');
 
-    // Notify the target user
-    await Notification.create({
-      user: targetUserId,
-      title: 'มีข้อความถึงคุณ',
-      message: `${req.user.name}: ${text.trim().slice(0, 80)}`,
-      type: 'comment',
-    });
-
-    const io = req.app.get('io');
-    if (io) {
-      io.to(`user_${targetUserId}`).emit('notification', {
-        title: 'มีข้อความถึงคุณ',
+    // Notify
+    if (notifyUserId && notifyUserId.toString() !== req.user._id.toString()) {
+      await Notification.create({
+        user: notifyUserId,
+        title: notifyTitle,
         message: `${req.user.name}: ${text.trim().slice(0, 80)}`,
+        type: 'comment',
       });
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user_${notifyUserId}`).emit('notification', {
+          title: notifyTitle,
+          message: `${req.user.name}: ${text.trim().slice(0, 80)}`,
+        });
+      }
     }
 
     res.status(201).json(comment);

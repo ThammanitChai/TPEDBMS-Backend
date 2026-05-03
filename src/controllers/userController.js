@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Customer = require('../models/Customer');
+const Sale = require('../models/Sale');
 
 // @desc    Get all sales users (Admin only)
 // @route   GET /api/users/sales
@@ -58,8 +59,35 @@ const getSalesDetail = async (req, res, next) => {
       ];
     }
 
-    const customers = await Customer.find(query).select('-visits').sort({ createdAt: -1 });
-    res.json({ sales, customers });
+    const mongoose = require('mongoose');
+    const salesObjId = new mongoose.Types.ObjectId(req.params.id);
+
+    const now = new Date();
+    const curStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const curEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+    const [customers, [curRow], [prevRow]] = await Promise.all([
+      Customer.find(query).select('-visits').sort({ createdAt: -1 }),
+      Sale.aggregate([
+        { $match: { salesPerson: salesObjId, date: { $gte: curStart, $lte: curEnd } } },
+        { $group: { _id: null, totalAmount: { $sum: '$amount' }, totalOrders: { $sum: 1 } } },
+      ]),
+      Sale.aggregate([
+        { $match: { salesPerson: salesObjId, date: { $gte: prevStart, $lte: prevEnd } } },
+        { $group: { _id: null, totalAmount: { $sum: '$amount' }, totalOrders: { $sum: 1 } } },
+      ]),
+    ]);
+
+    res.json({
+      sales,
+      customers,
+      currentMonthSales: curRow?.totalAmount || 0,
+      currentMonthOrders: curRow?.totalOrders || 0,
+      prevMonthSales: prevRow?.totalAmount || 0,
+      prevMonthOrders: prevRow?.totalOrders || 0,
+    });
   } catch (error) {
     next(error);
   }

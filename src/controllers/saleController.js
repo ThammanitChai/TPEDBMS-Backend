@@ -76,13 +76,22 @@ const deleteSale = async (req, res, next) => {
 
 const getSaleStats = async (req, res, next) => {
   try {
-    const { salesPersonId } = req.query;
+    const { salesPersonId, from, to } = req.query;
     let match = {};
     if (req.user.role === 'sales') {
       match.salesPerson = req.user._id;
     } else if (salesPersonId) {
       const mongoose = require('mongoose');
       match.salesPerson = new mongoose.Types.ObjectId(salesPersonId);
+    }
+    if (from || to) {
+      match.date = {};
+      if (from) match.date.$gte = new Date(from);
+      if (to) {
+        const endOfDay = new Date(to);
+        endOfDay.setHours(23, 59, 59, 999);
+        match.date.$lte = endOfDay;
+      }
     }
 
     const [
