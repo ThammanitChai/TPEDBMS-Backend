@@ -1,11 +1,18 @@
 const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  pool: true,
+  maxConnections: 3,
+  socketTimeout: 10000,
+  greetingTimeout: 10000,
+  connectionTimeout: 10000,
 });
 
 const sendOtpEmail = async (to, otp, type) => {
@@ -20,9 +27,9 @@ const sendOtpEmail = async (to, otp, type) => {
     to,
     subject,
     html: `
-      <div style="font-family: 'Sarabun', sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
         <div style="background: linear-gradient(135deg, #dc2626, #b91c1c); padding: 28px 32px;">
-          <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">ThaiPinnacle CRM</h1>
+          <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 800;">ThaiPinnacle CRM</h1>
           <p style="margin: 4px 0 0; color: rgba(255,255,255,0.8); font-size: 13px;">Engineering Solutions</p>
         </div>
         <div style="padding: 32px;">
