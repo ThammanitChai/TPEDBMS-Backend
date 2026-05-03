@@ -338,6 +338,66 @@ const getCalendar = async (req, res, next) => {
   }
 };
 
+// @desc    Get visits + appointments + sales for a specific day (admin date picker)
+// @route   GET /api/customers/stats/day?date=YYYY-MM-DD
+// @access  Admin
+const getDayStats = async (req, res, next) => {
+  try {
+    const Sale = require('../models/Sale');
+    const d = req.query.date ? new Date(req.query.date) : new Date();
+    const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    const end   = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 59, 59, 999));
+
+    const [visits, appointments, sales] = await Promise.all([
+      // Visits completed on that day
+      Customer.aggregate([
+        { $unwind: '$visits' },
+        { $match: { 'visits.visitDate': { $gte: start, $lte: end } } },
+        { $lookup: { from: 'users', localField: 'salesPerson', foreignField: '_id', as: 'sp' } },
+        { $unwind: { path: '$sp', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            companyName: 1, contactPerson: 1, phone: 1, status: 1,
+            visit: {
+              _id: '$visits._id',
+              visitDate: '$visits.visitDate',
+              notes: '$visits.notes',
+              status: '$visits.status',
+            },
+            salesName: '$sp.name',
+          },
+        },
+        { $sort: { 'visit.visitDate': -1 } },
+      ]),
+
+      // Customers with nextVisitDate on that day (appointments)
+      Customer.find({ nextVisitDate: { $gte: start, $lte: end }, isArchived: { $ne: true } })
+        .populate('salesPerson', 'name')
+        .select('companyName contactPerson phone nextVisitDate salesPerson status'),
+
+      // Sales records for that day
+      Sale.aggregate([
+        { $match: { date: { $gte: start, $lte: end } } },
+        { $lookup: { from: 'users', localField: 'salesPerson', foreignField: '_id', as: 'sp' } },
+        { $unwind: { path: '$sp', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            amount: 1, product: 1, date: 1, platform: 1, channel: 1, customerName: 1,
+            salesName: '$sp.name',
+          },
+        },
+        { $sort: { date: -1 } },
+      ]),
+    ]);
+
+    const totalSalesAmount = sales.reduce((s, r) => s + (r.amount || 0), 0);
+
+    res.json({ date: start, visits, appointments, sales, totalSalesAmount });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getCustomers,
   getCustomerById,
@@ -347,4 +407,5 @@ module.exports = {
   addVisit,
   getDashboardStats,
   getCalendar,
+  getDayStats,
 };

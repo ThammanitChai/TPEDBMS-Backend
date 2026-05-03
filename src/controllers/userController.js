@@ -192,6 +192,26 @@ const updateUserDepartment = async (req, res, next) => {
   }
 };
 
+// @desc    Update employee profile fields (employeeId, zone, salesTarget) — Admin
+// @route   PATCH /api/users/:id/profile
+// @access  Admin
+const updateSalesProfile = async (req, res, next) => {
+  try {
+    const { employeeId, zone, salesTarget } = req.body;
+    const target = await User.findById(req.params.id);
+    if (!target) return res.status(404).json({ message: 'ไม่พบผู้ใช้' });
+
+    if (employeeId !== undefined) target.employeeId = employeeId;
+    if (zone !== undefined) target.zone = zone;
+    if (salesTarget !== undefined) target.salesTarget = Number(salesTarget) || 0;
+
+    await target.save();
+    res.json({ message: 'อัปเดตโปรไฟล์พนักงานแล้ว', user: target });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllSales,
   getSalesDetail,
@@ -201,4 +221,5 @@ module.exports = {
   restoreUser,
   updateUserRole,
   updateUserDepartment,
+  updateSalesProfile,
 };

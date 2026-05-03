@@ -53,6 +53,20 @@ const userSchema = new mongoose.Schema(
       enum: ['อุตสาหกรรม', 'ครัวเรือน', ''],
       default: '',
     },
+    employeeId: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    zone: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    salesTarget: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

@@ -86,6 +86,10 @@ const customerSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    photos: {
+      type: [String],
+      default: [],
+    },
     tags: [String],
     isArchived: {
       type: Boolean,

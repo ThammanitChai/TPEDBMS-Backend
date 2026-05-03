@@ -17,7 +17,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['visit_reminder', 'follow_up', 'system', 'new_customer', 'sale_request', 'sale_approved', 'sale_rejected'],
+      enum: ['visit_reminder', 'follow_up', 'system', 'new_customer', 'sale_request', 'sale_approved', 'sale_rejected', 'comment'],
       default: 'system',
     },
     relatedCustomer: {

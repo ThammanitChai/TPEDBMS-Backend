@@ -9,10 +9,12 @@ const {
   addVisit,
   getDashboardStats,
   getCalendar,
+  getDayStats,
 } = require('../controllers/customerController');
 const { protect, adminOnly } = require('../middleware/auth');
 
 router.get('/stats/dashboard', protect, adminOnly, getDashboardStats);
+router.get('/stats/day', protect, adminOnly, getDayStats);
 router.get('/calendar', protect, getCalendar);
 
 router.route('/')

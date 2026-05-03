@@ -9,6 +9,7 @@ const {
   restoreUser,
   updateUserRole,
   updateUserDepartment,
+  updateSalesProfile,
 } = require('../controllers/userController');
 const { protect, adminOnly, superAdminOnly } = require('../middleware/auth');
 
@@ -21,5 +22,6 @@ router.patch('/:id/archive', protect, adminOnly, archiveUser);
 router.patch('/:id/restore', protect, superAdminOnly, restoreUser);
 router.patch('/:id/role', protect, superAdminOnly, updateUserRole);
 router.patch('/:id/department', protect, adminOnly, updateUserDepartment);
+router.patch('/:id/profile', protect, adminOnly, updateSalesProfile);
 
 module.exports = router;
