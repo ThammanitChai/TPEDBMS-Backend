@@ -25,6 +25,16 @@ const dealSchema = new mongoose.Schema(
     product: { type: String, default: '' },
     notes: { type: String, default: '' },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    files: [
+      {
+        filename:   { type: String, required: true },
+        mimeType:   { type: String, default: 'application/octet-stream' },
+        size:       { type: Number, default: 0 },
+        data:       { type: String, required: true },
+        uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

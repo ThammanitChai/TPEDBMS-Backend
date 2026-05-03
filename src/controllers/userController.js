@@ -240,6 +240,62 @@ const updateSalesProfile = async (req, res, next) => {
   }
 };
 
+// @desc    Get own profile
+// @route   GET /api/users/me
+// @access  Private
+const getMe = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update own profile (avatar, title, expertise, phone, name)
+// @route   PATCH /api/users/me
+// @access  Private
+const updateMe = async (req, res, next) => {
+  try {
+    const { avatar, title, expertise, phone, name } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'ไม่พบผู้ใช้' });
+
+    if (name !== undefined) user.name = name.trim();
+    if (phone !== undefined) user.phone = phone.trim();
+    if (title !== undefined) user.title = title.trim();
+    if (expertise !== undefined) user.expertise = expertise;
+    if (avatar !== undefined) user.avatar = avatar;
+
+    await user.save();
+    const updated = user.toObject();
+    delete updated.password;
+    res.json(updated);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get colleagues in same department (no salary/target data)
+// @route   GET /api/users/colleagues
+// @access  Private
+const getColleagues = async (req, res, next) => {
+  try {
+    const me = await User.findById(req.user._id).select('department');
+    if (!me || !me.department) return res.json([]);
+
+    const colleagues = await User.find({
+      department: me.department,
+      isArchived: { $ne: true },
+      _id: { $ne: req.user._id },
+    }).select('name avatar title expertise zone department salesDivision role');
+
+    res.json(colleagues);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllSales,
   getSalesDetail,
@@ -250,4 +306,7 @@ module.exports = {
   updateUserRole,
   updateUserDepartment,
   updateSalesProfile,
+  getMe,
+  updateMe,
+  getColleagues,
 };

@@ -10,8 +10,15 @@ const {
   updateUserRole,
   updateUserDepartment,
   updateSalesProfile,
+  getMe,
+  updateMe,
+  getColleagues,
 } = require('../controllers/userController');
 const { protect, adminOnly, superAdminOnly } = require('../middleware/auth');
+
+router.get('/me', protect, getMe);
+router.patch('/me', protect, updateMe);
+router.get('/colleagues', protect, getColleagues);
 
 router.get('/', protect, adminOnly, getAllUsers);
 router.get('/sales', protect, adminOnly, getAllSales);

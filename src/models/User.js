@@ -67,6 +67,15 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    title: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    expertise: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );
