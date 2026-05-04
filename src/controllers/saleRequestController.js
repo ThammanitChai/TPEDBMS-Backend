@@ -3,6 +3,8 @@ const Sale = require('../models/Sale');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 
+const APPROVER_ROLES = ['admin', 'superadmin', 'manager_general', 'manager_industrial', 'manager_household'];
+
 const getSaleRequests = async (req, res, next) => {
   try {
     const { status, salesPersonId } = req.query;
@@ -10,8 +12,7 @@ const getSaleRequests = async (req, res, next) => {
 
     if (req.user.role === 'sales') {
       query.salesPerson = req.user._id;
-    } else {
-      // Admin: optional filters
+    } else if (APPROVER_ROLES.includes(req.user.role)) {
       if (status) query.status = status;
       if (salesPersonId) query.salesPerson = salesPersonId;
     }

@@ -3,14 +3,15 @@ const WorkPlanNote = require('../models/WorkPlanNote');
 const WorkPlanComment = require('../models/WorkPlanComment');
 const User = require('../models/User');
 
-const isAdmin = (u) => u.role === 'admin' || u.role === 'superadmin';
+const MANAGER_ROLES = ['admin', 'superadmin', 'manager_general', 'manager_industrial', 'manager_household'];
+const isManager = (u) => MANAGER_ROLES.includes(u.role);
 
 // GET /api/workplan
 const getPlans = async (req, res, next) => {
   try {
     const { year, month, startDate, endDate, userId: queryUserId } = req.query;
     // Admin can view any user's plans; sales can only view their own
-    const userId = isAdmin(req.user) && queryUserId ? queryUserId : req.user._id;
+    const userId = isManager(req.user) && queryUserId ? queryUserId : req.user._id;
 
     let start, end;
     if (startDate && endDate) {
@@ -83,9 +84,17 @@ const deletePlan = async (req, res, next) => {
 // GET /api/workplan/team
 const getSalesTeam = async (req, res, next) => {
   try {
-    if (!isAdmin(req.user)) return res.status(403).json({ message: 'ไม่มีสิทธิ์' });
-    const team = await User.find({ role: 'sales', isArchived: false })
-      .select('name email department salesDivision salesTarget avatar isActive')
+    if (!isManager(req.user)) return res.status(403).json({ message: 'ไม่มีสิทธิ์' });
+
+    const filter = { role: 'sales', isArchived: false };
+    if (req.user.role === 'manager_industrial') {
+      filter.salesRoles = { $in: ['อุตสาหกรรม'] };
+    } else if (req.user.role === 'manager_household') {
+      filter.salesRoles = { $in: ['ครัวเรือน'] };
+    }
+
+    const team = await User.find(filter)
+      .select('name email department salesRoles salesTarget avatar isActive')
       .sort({ name: 1 });
     res.json(team);
   } catch (error) {
@@ -99,7 +108,7 @@ const getSalesTeam = async (req, res, next) => {
 const getNote = async (req, res, next) => {
   try {
     const { date, userId } = req.query;
-    const targetId = (isAdmin(req.user) && userId) ? userId : req.user._id;
+    const targetId = (isManager(req.user) && userId) ? userId : req.user._id;
     const note = await WorkPlanNote.findOne({ userId: targetId, date });
     res.json(note || { content: '' });
   } catch (error) {
@@ -128,7 +137,7 @@ const upsertNote = async (req, res, next) => {
 const getComments = async (req, res, next) => {
   try {
     const { date, userId } = req.query;
-    const planOwnerId = (isAdmin(req.user) && userId) ? userId : req.user._id;
+    const planOwnerId = (isManager(req.user) && userId) ? userId : req.user._id;
     const comments = await WorkPlanComment.find({ planOwnerId, date })
       .populate('author', 'name avatar role')
       .sort({ createdAt: 1 });

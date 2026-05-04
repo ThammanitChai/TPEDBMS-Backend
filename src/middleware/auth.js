@@ -20,7 +20,7 @@ const protect = (req, res, next) => {
       name: decoded.name,
       isActive: decoded.isActive,
       department: decoded.department || '',
-      salesDivision: decoded.salesDivision || '',
+      salesRoles: decoded.salesRoles || [],
       allowedMenus: decoded.allowedMenus || [],
     };
     next();
@@ -39,4 +39,11 @@ const superAdminOnly = (req, res, next) => {
   res.status(403).json({ message: 'เฉพาะ Super Admin เท่านั้น' });
 };
 
-module.exports = { protect, adminOnly, superAdminOnly };
+const APPROVER_ROLES = ['admin', 'superadmin', 'manager_general', 'manager_industrial', 'manager_household'];
+
+const approverOnly = (req, res, next) => {
+  if (APPROVER_ROLES.includes(req.user?.role)) return next();
+  res.status(403).json({ message: 'ไม่มีสิทธิ์อนุมัติ' });
+};
+
+module.exports = { protect, adminOnly, superAdminOnly, approverOnly };

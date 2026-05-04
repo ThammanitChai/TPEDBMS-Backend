@@ -46,15 +46,16 @@ const getComments = async (req, res, next) => {
 // @access  Admin / SuperAdmin
 const createComment = async (req, res, next) => {
   try {
-    const { targetUserId, targetCustomerId, text } = req.body;
-    if (!text?.trim()) return res.status(400).json({ message: 'กรุณากรอกข้อความ' });
+    const { targetUserId, targetCustomerId, text, photo } = req.body;
+    if (!text?.trim() && !photo) return res.status(400).json({ message: 'กรุณากรอกข้อความหรือแนบรูป' });
     if (!targetUserId && !targetCustomerId) {
       return res.status(400).json({ message: 'ต้องระบุผู้รับ' });
     }
 
     const commentData = {
       author: req.user._id,
-      text: text.trim(),
+      text: text?.trim() || '',
+      photo: photo || null,
     };
 
     let notifyUserId = null;

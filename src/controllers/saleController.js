@@ -60,12 +60,14 @@ const updateSale = async (req, res, next) => {
   }
 };
 
+const APPROVER_ROLES = ['admin', 'superadmin', 'manager_general', 'manager_industrial', 'manager_household'];
+
 const deleteSale = async (req, res, next) => {
   try {
     const sale = await Sale.findById(req.params.id);
     if (!sale) return res.status(404).json({ message: 'ไม่พบรายการ' });
-    if (req.user.role === 'sales' && sale.salesPerson.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'ไม่มีสิทธิ์ลบ' });
+    if (!APPROVER_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ message: 'ยอดขายที่อนุมัติแล้วลบได้เฉพาะผู้ดูแลระบบ' });
     }
     await sale.deleteOne();
     res.json({ message: 'ลบเรียบร้อย' });

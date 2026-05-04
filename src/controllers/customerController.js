@@ -312,10 +312,16 @@ const getCalendar = async (req, res, next) => {
 
     const appointmentDocs = await Customer.find({
       ...baseMatch,
-      nextVisitDate: { $gte: startDate, $lte: endDate },
+      isArchived: { $ne: true },
+      $or: [
+        // Start date within this month (with or without deadline)
+        { nextVisitDate: { $gte: startDate, $lte: endDate } },
+        // Started before this month but deadline overlaps (ongoing range)
+        { nextVisitDate: { $lt: startDate }, nextVisitDeadline: { $gte: startDate } },
+      ],
     })
       .populate('salesPerson', 'name')
-      .select('companyName nextVisitDate contactPerson salesPerson _id');
+      .select('companyName nextVisitDate nextVisitDeadline contactPerson salesPerson _id');
 
     res.json({
       visits: visits.map((v) => ({
@@ -327,6 +333,7 @@ const getCalendar = async (req, res, next) => {
       })),
       appointments: appointmentDocs.map((a) => ({
         date: a.nextVisitDate,
+        deadline: a.nextVisitDeadline || null,
         customerId: a._id,
         companyName: a.companyName,
         salesName: a.salesPerson?.name || '',

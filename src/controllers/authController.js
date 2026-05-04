@@ -13,10 +13,14 @@ const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
 // @access  Public
 const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, role, phone, adminCode, department, salesDivision } = req.body;
+    const { name, email, password, role, phone, adminCode, department, salesRoles } = req.body;
 
+    const VALID_ROLES = ['superadmin', 'admin', 'manager_general', 'manager_industrial', 'manager_household', 'sales'];
     if (role === 'superadmin' && adminCode !== SUPERADMIN_CODE) {
       return res.status(400).json({ message: 'รหัสพิเศษ Super Admin ไม่ถูกต้อง' });
+    }
+    if (role && !VALID_ROLES.includes(role)) {
+      return res.status(400).json({ message: 'Role ไม่ถูกต้อง' });
     }
 
     const userExists = await User.findOne({ email });
@@ -29,7 +33,7 @@ const registerUser = async (req, res, next) => {
       role: role || 'sales',
       phone,
       department: department || '',
-      salesDivision: salesDivision || '',
+      salesRoles: Array.isArray(salesRoles) ? salesRoles : [],
     });
 
     res.status(201).json({
@@ -64,6 +68,8 @@ const loginUser = async (req, res, next) => {
         role: user.role,
         phone: user.phone,
         avatar: user.avatar,
+        department: user.department || '',
+        salesRoles: user.salesRoles || [],
         allowedMenus: user.allowedMenus || [],
         token: generateToken(user),
       });

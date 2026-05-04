@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['superadmin', 'admin', 'sales'],
+      enum: ['superadmin', 'admin', 'manager_general', 'manager_industrial', 'manager_household', 'sales'],
       default: 'sales',
     },
     phone: {
@@ -48,10 +48,10 @@ const userSchema = new mongoose.Schema(
       enum: ['ฝ่ายขาย', 'ฝ่ายการตลาด', 'ฝ่ายช่าง', 'ฝ่ายขนส่ง', 'ทีมโปรเจกต์', ''],
       default: '',
     },
-    salesDivision: {
-      type: String,
-      enum: ['อุตสาหกรรม', 'ครัวเรือน', ''],
-      default: '',
+    salesRoles: {
+      type: [String],
+      enum: ['อุตสาหกรรม', 'ครัวเรือน', 'modern_tech'],
+      default: [],
     },
     employeeId: {
       type: String,

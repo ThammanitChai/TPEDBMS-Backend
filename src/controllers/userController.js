@@ -117,8 +117,9 @@ const toggleUserStatus = async (req, res, next) => {
     const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ message: 'ไม่พบผู้ใช้' });
 
-    if (req.user.role === 'admin' && target.role === 'superadmin') {
-      return res.status(403).json({ message: 'ไม่มีสิทธิ์จัดการ Super Admin' });
+    const protectedRoles = ['superadmin', 'manager_general'];
+    if (req.user.role === 'admin' && protectedRoles.includes(target.role)) {
+      return res.status(403).json({ message: 'ไม่มีสิทธิ์จัดการผู้ใช้ระดับนี้' });
     }
 
     target.isActive = !target.isActive;
@@ -140,8 +141,9 @@ const archiveUser = async (req, res, next) => {
     if (target._id.toString() === req.user._id.toString()) {
       return res.status(400).json({ message: 'ไม่สามารถ Archive ตัวเองได้' });
     }
-    if (req.user.role === 'admin' && (target.role === 'superadmin' || target.role === 'admin')) {
-      return res.status(403).json({ message: 'ไม่มีสิทธิ์ Archive ผู้ดูแลระบบ' });
+    const archiveProtected = ['superadmin', 'admin', 'manager_general'];
+    if (req.user.role === 'admin' && archiveProtected.includes(target.role)) {
+      return res.status(403).json({ message: 'ไม่มีสิทธิ์ Archive ผู้ใช้ระดับนี้' });
     }
 
     target.isArchived = true;
@@ -176,7 +178,8 @@ const restoreUser = async (req, res, next) => {
 const updateUserRole = async (req, res, next) => {
   try {
     const { role } = req.body;
-    if (!['superadmin', 'admin', 'sales'].includes(role)) {
+    const VALID_ROLES = ['superadmin', 'admin', 'manager_general', 'manager_industrial', 'manager_household', 'sales'];
+    if (!VALID_ROLES.includes(role)) {
       return res.status(400).json({ message: 'Role ไม่ถูกต้อง' });
     }
 
@@ -196,22 +199,24 @@ const updateUserRole = async (req, res, next) => {
 // @access  Admin
 const updateUserDepartment = async (req, res, next) => {
   try {
-    const { department, salesDivision } = req.body;
+    const { department, salesRoles } = req.body;
     const validDepts = ['ฝ่ายขาย', 'ฝ่ายการตลาด', 'ฝ่ายช่าง', 'ฝ่ายขนส่ง', 'ทีมโปรเจกต์', ''];
-    const validDivisions = ['อุตสาหกรรม', 'ครัวเรือน', ''];
+    const validSalesRoles = ['อุตสาหกรรม', 'ครัวเรือน', 'modern_tech'];
 
     if (department !== undefined && !validDepts.includes(department)) {
       return res.status(400).json({ message: 'แผนกไม่ถูกต้อง' });
     }
-    if (salesDivision !== undefined && !validDivisions.includes(salesDivision)) {
-      return res.status(400).json({ message: 'แผนกขายไม่ถูกต้อง' });
+    if (salesRoles !== undefined) {
+      if (!Array.isArray(salesRoles) || salesRoles.some((r) => !validSalesRoles.includes(r))) {
+        return res.status(400).json({ message: 'salesRoles ไม่ถูกต้อง' });
+      }
     }
 
     const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ message: 'ไม่พบผู้ใช้' });
 
     if (department !== undefined) target.department = department;
-    if (salesDivision !== undefined) target.salesDivision = salesDivision;
+    if (salesRoles !== undefined) target.salesRoles = salesRoles;
     await target.save();
 
     res.json({ message: 'อัปเดตแผนกแล้ว', user: target });

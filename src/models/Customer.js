@@ -76,6 +76,10 @@ const customerSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    nextVisitDeadline: {
+      type: Date,
+      default: null,
+    },
     status: {
       type: String,
       enum: ['lead', 'prospect', 'customer', 'inactive', 'กำลังติดตาม', 'ลูกค้าของเรา', 'ยกเลิกติดตาม', 'หนี้เสีย'],
@@ -91,6 +95,11 @@ const customerSchema = new mongoose.Schema(
       default: [],
     },
     tags: [String],
+    leadSource: {
+      type: String,
+      enum: ['Line @', 'โทรเข้าออฟฟิษ', 'Email online / Email info', 'Contact Form WWW / Quotation Form WWW', 'มีคนแนะนำ', ''],
+      default: '',
+    },
     creditType: { type: String, default: '' },
     isArchived: {
       type: Boolean,

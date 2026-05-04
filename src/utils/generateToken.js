@@ -8,7 +8,7 @@ const generateToken = (user) => {
       name: user.name,
       isActive: user.isActive,
       department: user.department || '',
-      salesDivision: user.salesDivision || '',
+      salesRoles: user.salesRoles || [],
       allowedMenus: user.allowedMenus || [],
     },
     process.env.JWT_SECRET,
