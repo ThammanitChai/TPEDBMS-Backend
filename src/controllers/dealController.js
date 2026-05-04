@@ -22,7 +22,7 @@ const getAll = async (req, res, next) => {
 
     const deals = await Deal.find(filter)
       .select({ 'files.data': 0 })
-      .populate('assignedTo', 'name department')
+      .populate('assignedTo', 'name department avatar')
       .populate('files.uploadedBy', 'name')
       .populate('saleRequestId', 'status')
       .sort({ followUpDate: -1, createdAt: -1 });
@@ -69,7 +69,7 @@ const getDealStats = async (req, res, next) => {
 const create = async (req, res, next) => {
   try {
     const deal = await Deal.create({ ...req.body, assignedTo: req.user._id });
-    const populated = await deal.populate('assignedTo', 'name department');
+    const populated = await deal.populate('assignedTo', 'name department avatar');
     res.status(201).json(populated);
   } catch (error) {
     next(error);
@@ -90,7 +90,7 @@ const update = async (req, res, next) => {
     const prevStatus = deal.dealStatus;
     const updated = await Deal.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
       .select({ 'files.data': 0 })
-      .populate('assignedTo', 'name department')
+      .populate('assignedTo', 'name department avatar')
       .populate('files.uploadedBy', 'name');
 
     // Auto-create SaleRequest when deal reaches ลูกค้าสั่งซื้อ (only once)

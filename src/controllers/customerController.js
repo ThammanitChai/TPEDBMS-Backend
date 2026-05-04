@@ -27,7 +27,7 @@ const getCustomers = async (req, res, next) => {
     if (status) query.status = status;
 
     const customers = await Customer.find(query)
-      .populate('salesPerson', 'name email')
+      .populate('salesPerson', 'name email avatar')
       .select('-visits')
       .sort({ createdAt: -1 });
 
@@ -44,7 +44,7 @@ const getCustomerById = async (req, res, next) => {
   try {
     const customer = await Customer.findById(req.params.id).populate(
       'salesPerson',
-      'name email phone'
+      'name email phone avatar'
     );
     if (!customer) return res.status(404).json({ message: 'ไม่พบลูกค้า' });
 
@@ -350,7 +350,7 @@ const getCalendar = async (req, res, next) => {
         { nextVisitType: 'deadline', nextVisitDeadline: { $gte: startDate, $lte: endDate } },
       ],
     })
-      .populate('salesPerson', 'name')
+      .populate('salesPerson', 'name avatar')
       .select('companyName nextVisitDate nextVisitDeadline nextVisitType contactPerson salesPerson _id');
 
     res.json({

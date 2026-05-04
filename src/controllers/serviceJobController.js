@@ -20,7 +20,7 @@ const getAll = async (req, res, next) => {
     }
 
     const jobs = await ServiceJob.find(filter)
-      .populate('assignedTo', 'name department')
+      .populate('assignedTo', 'name department avatar')
       .sort({ jobDate: -1 });
 
     res.json(jobs);
@@ -40,7 +40,7 @@ const create = async (req, res, next) => {
       afterPhotos: Array.isArray(afterPhotos) ? afterPhotos : [],
       assignedTo: req.user._id,
     });
-    const populated = await job.populate('assignedTo', 'name department');
+    const populated = await job.populate('assignedTo', 'name department avatar');
     res.status(201).json(populated);
   } catch (error) {
     next(error);
@@ -59,7 +59,7 @@ const update = async (req, res, next) => {
     }
 
     const updated = await ServiceJob.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
-      .populate('assignedTo', 'name department');
+      .populate('assignedTo', 'name department avatar');
     res.json(updated);
   } catch (error) {
     next(error);

@@ -106,6 +106,21 @@ const customerSchema = new mongoose.Schema(
       default: '',
     },
     creditType: { type: String, default: '' },
+    customerType: {
+      type: String,
+      enum: ['general', 'project'],
+      default: 'general',
+    },
+    projectContacts: [
+      {
+        name:     { type: String, default: '' },
+        position: { type: String, default: '' },
+        company:  { type: String, default: '' },
+        phone:    { type: String, default: '' },
+        email:    { type: String, default: '' },
+        note:     { type: String, default: '' },
+      },
+    ],
     isArchived: {
       type: Boolean,
       default: false,

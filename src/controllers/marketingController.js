@@ -20,7 +20,7 @@ const getAll = async (req, res, next) => {
     }
 
     const activities = await MarketingActivity.find(filter)
-      .populate('assignedTo', 'name department')
+      .populate('assignedTo', 'name department avatar')
       .sort({ activityDate: -1 });
 
     res.json(activities);
@@ -39,7 +39,7 @@ const create = async (req, res, next) => {
       mediaFiles: Array.isArray(mediaFiles) ? mediaFiles : [],
       assignedTo: req.user._id,
     });
-    const populated = await activity.populate('assignedTo', 'name department');
+    const populated = await activity.populate('assignedTo', 'name department avatar');
     res.status(201).json(populated);
   } catch (error) {
     next(error);
@@ -58,7 +58,7 @@ const update = async (req, res, next) => {
     }
 
     const updated = await MarketingActivity.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
-      .populate('assignedTo', 'name department');
+      .populate('assignedTo', 'name department avatar');
     res.json(updated);
   } catch (error) {
     next(error);
