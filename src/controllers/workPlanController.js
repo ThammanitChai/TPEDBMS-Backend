@@ -67,6 +67,16 @@ const updatePlan = async (req, res, next) => {
       }
     }
 
+    plan.editHistory.push({
+      editedByName: req.user.name || '',
+      editedAt: new Date(),
+      prevType:         plan.type,
+      prevNote:         plan.note,
+      prevCustomerName: plan.customerName,
+      prevCompleted:    plan.completed,
+      prevActualNote:   plan.actualNote,
+    });
+
     const { type, note, customerName, completed, actualNote } = req.body;
     if (type !== undefined) plan.type = type;
     if (note !== undefined) plan.note = note;
@@ -83,15 +93,7 @@ const updatePlan = async (req, res, next) => {
 
 // DELETE /api/workplan/:id
 const deletePlan = async (req, res, next) => {
-  try {
-    if (!isManager(req.user)) {
-      return res.status(403).json({ message: 'ไม่มีสิทธิ์ลบแผนงาน' });
-    }
-    await WorkPlan.findByIdAndDelete(req.params.id);
-    res.json({ message: 'ลบแผนงานแล้ว' });
-  } catch (error) {
-    next(error);
-  }
+  return res.status(403).json({ message: 'ไม่สามารถลบแผนงานได้' });
 };
 
 // ── Sales Team List for Admin ─────────────────────────────────
