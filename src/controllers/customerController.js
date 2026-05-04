@@ -330,10 +330,12 @@ const getCalendar = async (req, res, next) => {
         { nextVisitDate: { $gte: startDate, $lte: endDate } },
         // Started before this month but deadline overlaps (ongoing range)
         { nextVisitDate: { $lt: startDate }, nextVisitDeadline: { $gte: startDate } },
+        // Deadline-only type: only nextVisitDeadline is set
+        { nextVisitType: 'deadline', nextVisitDeadline: { $gte: startDate, $lte: endDate } },
       ],
     })
       .populate('salesPerson', 'name')
-      .select('companyName nextVisitDate nextVisitDeadline contactPerson salesPerson _id');
+      .select('companyName nextVisitDate nextVisitDeadline nextVisitType contactPerson salesPerson _id');
 
     res.json({
       visits: visits.map((v) => ({
@@ -344,8 +346,9 @@ const getCalendar = async (req, res, next) => {
         notes: v.notes || '',
       })),
       appointments: appointmentDocs.map((a) => ({
-        date: a.nextVisitDate,
+        date: a.nextVisitType === 'deadline' ? null : a.nextVisitDate,
         deadline: a.nextVisitDeadline || null,
+        visitType: a.nextVisitType || 'date',
         customerId: a._id,
         companyName: a.companyName,
         salesName: a.salesPerson?.name || '',

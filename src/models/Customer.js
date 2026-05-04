@@ -80,6 +80,11 @@ const customerSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    nextVisitType: {
+      type: String,
+      enum: ['date', 'range', 'deadline'],
+      default: 'date',
+    },
     status: {
       type: String,
       enum: ['lead', 'prospect', 'customer', 'inactive', 'กำลังติดตาม', 'ลูกค้าของเรา', 'ยกเลิกติดตาม', 'หนี้เสีย'],

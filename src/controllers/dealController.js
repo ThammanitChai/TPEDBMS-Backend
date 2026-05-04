@@ -24,6 +24,7 @@ const getAll = async (req, res, next) => {
       .select({ 'files.data': 0 })
       .populate('assignedTo', 'name department')
       .populate('files.uploadedBy', 'name')
+      .populate('saleRequestId', 'status')
       .sort({ followUpDate: -1, createdAt: -1 });
 
     res.json(deals);
@@ -101,7 +102,7 @@ const update = async (req, res, next) => {
       const totalQty = deal.items?.length > 0
         ? deal.items.reduce((s, i) => s + (i.qty || 1), 0)
         : 1;
-      await SaleRequest.create({
+      const sr = await SaleRequest.create({
         date: new Date(),
         customerName: deal.customerName,
         province: deal.province || '',
@@ -112,6 +113,8 @@ const update = async (req, res, next) => {
         salesPerson: deal.assignedTo,
         status: 'pending',
       });
+      await Deal.findByIdAndUpdate(req.params.id, { saleRequestId: sr._id });
+      updated.saleRequestId = { _id: sr._id, status: 'pending' };
     }
 
     res.json(updated);

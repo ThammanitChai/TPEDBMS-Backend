@@ -34,6 +34,7 @@ const dealSchema = new mongoose.Schema(
     ],
     notes: { type: String, default: '' },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    saleRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'SaleRequest', default: null },
     files: [
       {
         filename:   { type: String, required: true },
