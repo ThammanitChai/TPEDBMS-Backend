@@ -119,6 +119,8 @@ const customerSchema = new mongoose.Schema(
         phone:    { type: String, default: '' },
         email:    { type: String, default: '' },
         note:     { type: String, default: '' },
+        address:  { type: String, default: '' },
+        avatar:   { type: String, default: '' },
       },
     ],
     isArchived: {

@@ -4,6 +4,7 @@ const marketingMetricSchema = new mongoose.Schema(
   {
     date: { type: String, required: true, unique: true }, // YYYY-MM-DD
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    updatedByName: { type: String, default: '' },
     // Facebook
     fb_TPE:    { type: Number, default: null },
     fb_Walrus: { type: Number, default: null },

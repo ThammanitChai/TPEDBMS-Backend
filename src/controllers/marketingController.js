@@ -111,7 +111,7 @@ const upsertMetrics = async (req, res, next) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ message: 'รูปแบบวันที่ไม่ถูกต้อง (YYYY-MM-DD)' });
     }
-    const data = { ...req.body, date, createdBy: req.user._id };
+    const data = { ...req.body, date, createdBy: req.user._id, updatedByName: req.user.name || '' };
     const metric = await MarketingMetric.findOneAndUpdate(
       { date },
       data,

@@ -1,6 +1,10 @@
 const User = require('../models/User');
 const Customer = require('../models/Customer');
 const Sale = require('../models/Sale');
+const TargetChangeRequest = require('../models/TargetChangeRequest');
+const Notification = require('../models/Notification');
+
+const ADMIN_ROLES = ['admin', 'superadmin', 'manager_general', 'manager_industrial', 'manager_household'];
 
 // @desc    Get all sales users (Admin only)
 // @route   GET /api/users/sales
@@ -336,6 +340,108 @@ const updateUserMenus = async (req, res, next) => {
   }
 };
 
+// ── Target Change Requests ────────────────────────────────────
+
+// POST /api/users/target-requests  (sales submits)
+const createTargetRequest = async (req, res, next) => {
+  try {
+    const { requestedTarget, reason } = req.body;
+    if (!requestedTarget || Number(requestedTarget) <= 0) {
+      return res.status(400).json({ message: 'กรุณาระบุเป้าหมายที่ต้องการ' });
+    }
+    const existing = await TargetChangeRequest.findOne({ salesPerson: req.user._id, status: 'pending' });
+    if (existing) {
+      return res.status(400).json({ message: 'มีคำขอที่รออนุมัติอยู่แล้ว' });
+    }
+    const me = await User.findById(req.user._id).select('salesTarget');
+    const request = await TargetChangeRequest.create({
+      salesPerson: req.user._id,
+      currentTarget: me.salesTarget || 0,
+      requestedTarget: Number(requestedTarget),
+      reason: reason || '',
+    });
+
+    // Notify admins
+    const admins = await User.find({ role: { $in: ['admin', 'superadmin'] }, isArchived: { $ne: true } });
+    const io = req.app.get('io');
+    await Promise.all(admins.map(async (admin) => {
+      await Notification.create({
+        user: admin._id,
+        title: 'คำขอเปลี่ยนเป้าหมายยอดขาย',
+        message: `${req.user.name} ขอเปลี่ยนเป้าหมายเป็น ฿${Number(requestedTarget).toLocaleString('th-TH')}`,
+        type: 'general',
+      });
+      if (io) io.to(`user_${admin._id}`).emit('notification', {
+        title: 'คำขอเปลี่ยนเป้าหมายยอดขาย',
+        message: `${req.user.name} ขอเปลี่ยนเป้าหมายเป็น ฿${Number(requestedTarget).toLocaleString('th-TH')}`,
+      });
+    }));
+
+    res.status(201).json(request);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/users/target-requests
+const getTargetRequests = async (req, res, next) => {
+  try {
+    const isAdmin = ADMIN_ROLES.includes(req.user.role);
+    const query = isAdmin
+      ? (req.query.status ? { status: req.query.status } : {})
+      : { salesPerson: req.user._id };
+
+    const requests = await TargetChangeRequest.find(query)
+      .populate('salesPerson', 'name avatar')
+      .populate('reviewedBy', 'name')
+      .sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// PATCH /api/users/target-requests/:id/review  (admin)
+const reviewTargetRequest = async (req, res, next) => {
+  try {
+    if (!ADMIN_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ message: 'ไม่มีสิทธิ์' });
+    }
+    const { action, rejectReason } = req.body;
+    const request = await TargetChangeRequest.findById(req.params.id).populate('salesPerson', 'name _id');
+    if (!request) return res.status(404).json({ message: 'ไม่พบคำขอ' });
+    if (request.status !== 'pending') return res.status(400).json({ message: 'คำขอนี้ถูกดำเนินการแล้ว' });
+
+    request.reviewedBy = req.user._id;
+    request.reviewedAt = new Date();
+
+    if (action === 'approve') {
+      request.status = 'approved';
+      await User.findByIdAndUpdate(request.salesPerson._id, { salesTarget: request.requestedTarget });
+    } else if (action === 'reject') {
+      request.status = 'rejected';
+      request.rejectReason = rejectReason || '';
+    } else {
+      return res.status(400).json({ message: 'action ต้องเป็น approve หรือ reject' });
+    }
+    await request.save();
+
+    // Notify sales person
+    const io = req.app.get('io');
+    const title = action === 'approve' ? 'คำขอเปลี่ยนเป้าหมายได้รับการอนุมัติ' : 'คำขอเปลี่ยนเป้าหมายถูกปฏิเสธ';
+    const message = action === 'approve'
+      ? `เป้าหมายยอดขายของคุณถูกเปลี่ยนเป็น ฿${request.requestedTarget.toLocaleString('th-TH')} แล้ว`
+      : `คำขอเปลี่ยนเป้าหมายถูกปฏิเสธ${rejectReason ? ': ' + rejectReason : ''}`;
+
+    await Notification.create({ user: request.salesPerson._id, title, message, type: 'general' });
+    if (io) io.to(`user_${request.salesPerson._id}`).emit('notification', { title, message });
+
+    res.json(request);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDirectory,
   getAllSales,
@@ -351,4 +457,7 @@ module.exports = {
   updateMe,
   getColleagues,
   updateUserMenus,
+  createTargetRequest,
+  getTargetRequests,
+  reviewTargetRequest,
 };

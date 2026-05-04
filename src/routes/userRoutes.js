@@ -15,6 +15,9 @@ const {
   updateMe,
   getColleagues,
   updateUserMenus,
+  createTargetRequest,
+  getTargetRequests,
+  reviewTargetRequest,
 } = require('../controllers/userController');
 const { protect, adminOnly, superAdminOnly } = require('../middleware/auth');
 
@@ -34,5 +37,9 @@ router.patch('/:id/role', protect, superAdminOnly, updateUserRole);
 router.patch('/:id/department', protect, adminOnly, updateUserDepartment);
 router.patch('/:id/profile', protect, adminOnly, updateSalesProfile);
 router.patch('/:id/menus', protect, adminOnly, updateUserMenus);
+
+router.get('/target-requests', protect, getTargetRequests);
+router.post('/target-requests', protect, createTargetRequest);
+router.patch('/target-requests/:id/review', protect, reviewTargetRequest);
 
 module.exports = router;
