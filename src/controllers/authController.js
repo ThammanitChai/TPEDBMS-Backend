@@ -54,12 +54,17 @@ const registerUser = async (req, res, next) => {
 // @access  Public
 const loginUser = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, employeeId } = req.body;
     const user = await User.findOne({ email }).select('+password');
 
     if (user && (await user.matchPassword(password))) {
       if (!user.isActive || user.isArchived) {
         return res.status(403).json({ message: 'บัญชีของคุณถูกระงับหรือถูกลบออกจากระบบ' });
+      }
+      if (user.employeeId && user.employeeId.trim() !== '') {
+        if (!employeeId || employeeId.trim() !== user.employeeId.trim()) {
+          return res.status(401).json({ message: 'รหัสพนักงานไม่ถูกต้อง' });
+        }
       }
       res.json({
         _id: user._id,

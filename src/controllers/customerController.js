@@ -20,6 +20,7 @@ const getCustomers = async (req, res, next) => {
         { companyName: { $regex: search, $options: 'i' } },
         { contactPerson: { $regex: search, $options: 'i' } },
         { phone: { $regex: search, $options: 'i' } },
+        { customerCode: { $regex: search, $options: 'i' } },
       ];
     }
 
@@ -141,7 +142,8 @@ const updateCustomer = async (req, res, next) => {
       return res.status(403).json({ message: 'ไม่มีสิทธิ์แก้ไข' });
     }
 
-    Object.assign(customer, req.body);
+    const { customerCode, codeMode, codeDiv, codeType, codeBiz, codeZone, codeManual, ...updateData } = req.body;
+    Object.assign(customer, updateData);
     await customer.save();
 
     res.json(customer);
