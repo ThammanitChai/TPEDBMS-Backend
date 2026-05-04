@@ -13,7 +13,7 @@ const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
 // @access  Public
 const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, role, phone, adminCode, department, salesRoles } = req.body;
+    const { name, email, password, role, phone, adminCode, department, salesRoles, employeeId } = req.body;
 
     const VALID_ROLES = ['superadmin', 'admin', 'manager_general', 'manager_industrial', 'manager_household', 'sales'];
     if (role === 'superadmin' && adminCode !== SUPERADMIN_CODE) {
@@ -34,6 +34,7 @@ const registerUser = async (req, res, next) => {
       phone,
       department: department || '',
       salesRoles: Array.isArray(salesRoles) ? salesRoles : [],
+      employeeId: employeeId || '',
     });
 
     res.status(201).json({
@@ -54,17 +55,17 @@ const registerUser = async (req, res, next) => {
 // @access  Public
 const loginUser = async (req, res, next) => {
   try {
-    const { email, password, employeeId } = req.body;
-    const user = await User.findOne({ email }).select('+password');
+    const { emailOrId, password } = req.body;
+    if (!emailOrId) return res.status(400).json({ message: 'กรุณากรอกอีเมลหรือรหัสพนักงาน' });
+
+    const isEmail = emailOrId.includes('@');
+    const user = await User.findOne(
+      isEmail ? { email: emailOrId.toLowerCase().trim() } : { employeeId: emailOrId.trim() }
+    ).select('+password');
 
     if (user && (await user.matchPassword(password))) {
       if (!user.isActive || user.isArchived) {
         return res.status(403).json({ message: 'บัญชีของคุณถูกระงับหรือถูกลบออกจากระบบ' });
-      }
-      if (user.employeeId && user.employeeId.trim() !== '') {
-        if (!employeeId || employeeId.trim() !== user.employeeId.trim()) {
-          return res.status(401).json({ message: 'รหัสพนักงานไม่ถูกต้อง' });
-        }
       }
       res.json({
         _id: user._id,
@@ -79,7 +80,7 @@ const loginUser = async (req, res, next) => {
         token: generateToken(user),
       });
     } else {
-      res.status(401).json({ message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' });
+      res.status(401).json({ message: 'อีเมล / รหัสพนักงาน หรือ รหัสผ่านไม่ถูกต้อง' });
     }
   } catch (error) {
     next(error);

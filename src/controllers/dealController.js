@@ -34,20 +34,30 @@ const getAll = async (req, res, next) => {
 
 // @desc  Get deal stats
 // @route GET /api/deals/stats
+const STATUS_KEYS = ['ขอใบเสนอราคา', 'ส่งใบเสนอราคา', 'กำลังต่อรอง', 'ลูกค้าสั่งซื้อ', 'ยกเลิกสั่งซื้อ'];
+
 const getDealStats = async (req, res, next) => {
   try {
     const matchFilter = req.user.role === 'sales' ? { assignedTo: req.user._id } : {};
 
-    const [countAgg, sumAgg] = await Promise.all([
-      Deal.aggregate([{ $match: matchFilter }, { $group: { _id: '$dealStatus', count: { $sum: 1 } } }]),
-      Deal.aggregate([{ $match: matchFilter }, { $group: { _id: '$dealStatus', totalPrice: { $sum: '$quotedPrice' } } }]),
+    const agg = await Deal.aggregate([
+      { $match: matchFilter },
+      { $group: { _id: '$dealStatus', count: { $sum: 1 }, totalPrice: { $sum: '$quotedPrice' } } },
     ]);
 
-    const stats = { Open: { count: 0, totalPrice: 0 }, Won: { count: 0, totalPrice: 0 }, Lost: { count: 0, totalPrice: 0 } };
-    countAgg.forEach(({ _id, count }) => { if (stats[_id]) stats[_id].count = count; });
-    sumAgg.forEach(({ _id, totalPrice }) => { if (stats[_id]) stats[_id].totalPrice = totalPrice; });
+    const stats = {};
+    STATUS_KEYS.forEach((k) => { stats[k] = { count: 0, totalPrice: 0 }; });
+    agg.forEach(({ _id, count, totalPrice }) => {
+      if (stats[_id]) { stats[_id].count = count; stats[_id].totalPrice = totalPrice; }
+    });
 
-    res.json(stats);
+    // pipeline = sum of first 3 statuses
+    const pipeline = STATUS_KEYS.slice(0, 3).reduce(
+      (s, k) => ({ count: s.count + stats[k].count, totalPrice: s.totalPrice + stats[k].totalPrice }),
+      { count: 0, totalPrice: 0 }
+    );
+
+    res.json({ ...stats, pipeline });
   } catch (error) {
     next(error);
   }
@@ -76,10 +86,34 @@ const update = async (req, res, next) => {
       return res.status(403).json({ message: 'ไม่มีสิทธิ์แก้ไขดีลนี้' });
     }
 
+    const prevStatus = deal.dealStatus;
     const updated = await Deal.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
       .select({ 'files.data': 0 })
       .populate('assignedTo', 'name department')
       .populate('files.uploadedBy', 'name');
+
+    // Auto-create SaleRequest when deal reaches ลูกค้าสั่งซื้อ (only once)
+    if (req.body.dealStatus === 'ลูกค้าสั่งซื้อ' && prevStatus !== 'ลูกค้าสั่งซื้อ') {
+      const SaleRequest = require('../models/SaleRequest');
+      const productText = deal.items?.length > 0
+        ? deal.items.map((i) => `${i.code} x${i.qty}`).join(', ')
+        : (deal.product || '-');
+      const totalQty = deal.items?.length > 0
+        ? deal.items.reduce((s, i) => s + (i.qty || 1), 0)
+        : 1;
+      await SaleRequest.create({
+        date: new Date(),
+        customerName: deal.customerName,
+        province: deal.province || '',
+        product: productText,
+        quantity: totalQty,
+        amount: deal.quotedPrice || 0,
+        notes: `จากใบเสนอราคา${deal.quotationNo ? ` ${deal.quotationNo}` : ''}`,
+        salesPerson: deal.assignedTo,
+        status: 'pending',
+      });
+    }
+
     res.json(updated);
   } catch (error) {
     next(error);

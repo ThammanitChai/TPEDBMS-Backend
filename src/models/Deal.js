@@ -13,8 +13,8 @@ const dealSchema = new mongoose.Schema(
     quotedPrice: { type: Number, default: 0 },
     dealStatus: {
       type: String,
-      enum: ['Open', 'Won', 'Lost'],
-      default: 'Open',
+      enum: ['ขอใบเสนอราคา', 'ส่งใบเสนอราคา', 'กำลังต่อรอง', 'ลูกค้าสั่งซื้อ', 'ยกเลิกสั่งซื้อ', 'Open', 'Won', 'Lost'],
+      default: 'ขอใบเสนอราคา',
     },
     followUpDate: { type: Date, default: null },
     salesDivision: {
@@ -23,6 +23,15 @@ const dealSchema = new mongoose.Schema(
       default: '',
     },
     product: { type: String, default: '' },
+    items: [
+      {
+        code:      { type: String, default: '' },
+        name:      { type: String, default: '' },
+        spec:      { type: String, default: '' },
+        qty:       { type: Number, default: 1, min: 1 },
+        unitPrice: { type: Number, default: 0, min: 0 },
+      },
+    ],
     notes: { type: String, default: '' },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     files: [
