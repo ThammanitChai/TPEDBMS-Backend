@@ -1,4 +1,5 @@
 const MarketingActivity = require('../models/MarketingActivity');
+const MarketingMetric = require('../models/MarketingMetric');
 
 // @desc  Get all marketing activities (admin: all, sales: own only)
 // @route GET /api/marketing
@@ -33,7 +34,6 @@ const getAll = async (req, res, next) => {
 const create = async (req, res, next) => {
   try {
     const { mediaFiles, ...rest } = req.body;
-    // mediaFiles is an array of base64 strings — store as-is
     const activity = await MarketingActivity.create({
       ...rest,
       mediaFiles: Array.isArray(mediaFiles) ? mediaFiles : [],
@@ -83,4 +83,44 @@ const remove = async (req, res, next) => {
   }
 };
 
-module.exports = { getAll, create, update, remove };
+// ── Marketing Metrics ─────────────────────────────────────────────────────────
+
+// @desc  Get metrics for date range
+// @route GET /api/marketing/metrics?from=YYYY-MM-DD&to=YYYY-MM-DD
+const getMetrics = async (req, res, next) => {
+  try {
+    const { from, to } = req.query;
+    const filter = {};
+    if (from || to) {
+      filter.date = {};
+      if (from) filter.date.$gte = from;
+      if (to) filter.date.$lte = to;
+    }
+    const metrics = await MarketingMetric.find(filter).sort({ date: 1 });
+    res.json(metrics);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc  Upsert metrics for a specific date
+// @route PUT /api/marketing/metrics/:date
+const upsertMetrics = async (req, res, next) => {
+  try {
+    const { date } = req.params;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ message: 'รูปแบบวันที่ไม่ถูกต้อง (YYYY-MM-DD)' });
+    }
+    const data = { ...req.body, date, createdBy: req.user._id };
+    const metric = await MarketingMetric.findOneAndUpdate(
+      { date },
+      data,
+      { upsert: true, new: true, runValidators: true }
+    );
+    res.json(metric);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getAll, create, update, remove, getMetrics, upsertMetrics };

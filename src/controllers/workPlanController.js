@@ -55,6 +55,18 @@ const updatePlan = async (req, res, next) => {
     const plan = await WorkPlan.findOne({ _id: req.params.id, userId: req.user._id });
     if (!plan) return res.status(404).json({ message: 'ไม่พบแผนงาน' });
 
+    // Sales: can only edit plans within 3 days before the plan date
+    if (!isManager(req.user)) {
+      const planDate = new Date(plan.date);
+      planDate.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const daysUntil = Math.ceil((planDate - today) / (1000 * 60 * 60 * 24));
+      if (daysUntil > 3) {
+        return res.status(403).json({ message: 'แก้ไขได้เฉพาะแผนงานที่อยู่ภายใน 3 วันข้างหน้า' });
+      }
+    }
+
     const { type, note, customerName, completed, actualNote } = req.body;
     if (type !== undefined) plan.type = type;
     if (note !== undefined) plan.note = note;
@@ -72,7 +84,10 @@ const updatePlan = async (req, res, next) => {
 // DELETE /api/workplan/:id
 const deletePlan = async (req, res, next) => {
   try {
-    await WorkPlan.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
+    if (!isManager(req.user)) {
+      return res.status(403).json({ message: 'ไม่มีสิทธิ์ลบแผนงาน' });
+    }
+    await WorkPlan.findByIdAndDelete(req.params.id);
     res.json({ message: 'ลบแผนงานแล้ว' });
   } catch (error) {
     next(error);

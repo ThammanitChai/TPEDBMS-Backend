@@ -13,6 +13,7 @@ const workPlanSchema = new mongoose.Schema(
     customerName: { type: String, default: '' },
     completed: { type: Boolean, default: false },
     actualNote: { type: String, default: '' },
+    source: { type: String, enum: ['manual', 'visit_auto'], default: 'manual' },
   },
   { timestamps: true }
 );

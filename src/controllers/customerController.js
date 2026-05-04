@@ -193,6 +193,22 @@ const addVisit = async (req, res, next) => {
     customer.visits.push(req.body);
     await customer.save();
 
+    // Auto-create WorkPlan entry for this visit
+    try {
+      const WorkPlan = require('../models/WorkPlan');
+      const visitDate = new Date(req.body.visitDate || Date.now());
+      visitDate.setHours(12, 0, 0, 0);
+      await WorkPlan.create({
+        userId: req.user._id,
+        date: visitDate,
+        type: 'visit',
+        note: req.body.notes || '',
+        customerName: customer.companyName || '',
+        completed: true,
+        source: 'visit_auto',
+      });
+    } catch (_) {}
+
     res.status(201).json(customer);
   } catch (error) {
     next(error);
