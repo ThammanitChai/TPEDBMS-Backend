@@ -29,6 +29,7 @@ const dealSchema = new mongoose.Schema(
         name:      { type: String, default: '' },
         spec:      { type: String, default: '' },
         qty:       { type: Number, default: 1, min: 1 },
+        listPrice: { type: Number, default: 0, min: 0 },
         unitPrice: { type: Number, default: 0, min: 0 },
       },
     ],
