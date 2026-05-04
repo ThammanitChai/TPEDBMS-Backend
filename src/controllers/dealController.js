@@ -108,7 +108,7 @@ const update = async (req, res, next) => {
         province: deal.province || '',
         product: productText,
         quantity: totalQty,
-        amount: deal.quotedPrice || 0,
+        amount: Math.round((deal.quotedPrice || 0) * (1 - (deal.discount || 0) / 100)),
         notes: `จากใบเสนอราคา${deal.quotationNo ? ` ${deal.quotationNo}` : ''}`,
         salesPerson: deal.assignedTo,
         status: 'pending',

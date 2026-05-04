@@ -32,6 +32,7 @@ const dealSchema = new mongoose.Schema(
         unitPrice: { type: Number, default: 0, min: 0 },
       },
     ],
+    discount: { type: Number, default: 0, min: 0, max: 100 },
     notes: { type: String, default: '' },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     saleRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'SaleRequest', default: null },
