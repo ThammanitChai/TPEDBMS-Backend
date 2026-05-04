@@ -13,15 +13,7 @@ const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
 // @access  Public
 const registerUser = async (req, res, next) => {
   try {
-    const { name, email, password, role, phone, adminCode, department, salesRoles, employeeId } = req.body;
-
-    const VALID_ROLES = ['superadmin', 'admin', 'manager_general', 'manager_industrial', 'manager_household', 'sales'];
-    if (role === 'superadmin' && adminCode !== SUPERADMIN_CODE) {
-      return res.status(400).json({ message: 'รหัสพิเศษ Super Admin ไม่ถูกต้อง' });
-    }
-    if (role && !VALID_ROLES.includes(role)) {
-      return res.status(400).json({ message: 'Role ไม่ถูกต้อง' });
-    }
+    const { name, email, password, phone, department, salesRoles, employeeId } = req.body;
 
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -30,7 +22,7 @@ const registerUser = async (req, res, next) => {
 
     const user = await User.create({
       name, email, password,
-      role: role || 'sales',
+      role: 'sales',
       phone,
       department: department || '',
       salesRoles: Array.isArray(salesRoles) ? salesRoles : [],
@@ -172,21 +164,17 @@ const resetPassword = async (req, res, next) => {
 // @access  Public
 const registerVerified = async (req, res, next) => {
   try {
-    const { name, email, password, role, phone, adminCode, department, salesDivision, otp } = req.body;
+    const { name, email, password, phone, department, salesDivision, otp } = req.body;
 
     const record = await Otp.findOne({ email, otp, type: 'register' });
     if (!record) return res.status(400).json({ message: 'OTP ไม่ถูกต้องหรือหมดอายุแล้ว' });
-
-    if (role === 'superadmin' && adminCode !== SUPERADMIN_CODE) {
-      return res.status(400).json({ message: 'รหัสพิเศษ Super Admin ไม่ถูกต้อง' });
-    }
 
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: 'อีเมลนี้ถูกใช้งานแล้ว' });
 
     const user = await User.create({
       name, email, password,
-      role: role || 'sales',
+      role: 'sales',
       phone,
       department: department || '',
       salesDivision: salesDivision || '',
