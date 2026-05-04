@@ -60,18 +60,30 @@ const getCustomerById = async (req, res, next) => {
   }
 };
 
-const generateCustomerCode = async () => {
-  const year = new Date().getFullYear();
-  const prefix = `TP-${year}-`;
-  const last = await Customer.findOne(
-    { customerCode: { $regex: `^${prefix}` } },
-    { customerCode: 1 },
-    { sort: { customerCode: -1 } }
-  );
-  const seq = last
-    ? parseInt(last.customerCode.replace(prefix, ''), 10) + 1
-    : 1;
-  return `${prefix}${String(seq).padStart(4, '0')}`;
+const escRx = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const generateCustomerCode = async (codeMode, params) => {
+  if (codeMode === 'manual') {
+    const raw = params.codeManual?.trim();
+    if (!raw) throw Object.assign(new Error('กรุณาระบุรหัสลูกค้า'), { status: 400 });
+    return `M-${raw}`;
+  }
+
+  // Auto mode
+  const { codeDiv, codeType, codeBiz, codeZone } = params;
+  if (!codeDiv || !codeType || !codeBiz || !codeZone) {
+    throw Object.assign(new Error('กรุณาระบุข้อมูลรหัสลูกค้าให้ครบถ้วน'), { status: 400 });
+  }
+  const prefix = `${codeDiv}${codeType}-${codeBiz}-${codeZone}-`;
+  const existing = await Customer.find(
+    { customerCode: { $regex: `^${escRx(prefix)}\\d+-A$` } },
+    { customerCode: 1 }
+  ).lean();
+  const maxSeq = existing.reduce((max, c) => {
+    const m = c.customerCode.match(/-(\d+)-A$/);
+    return m ? Math.max(max, parseInt(m[1], 10)) : max;
+  }, 0);
+  return `${prefix}${String(maxSeq + 1).padStart(4, '0')}-A`;
 };
 
 // @desc    Create customer
@@ -79,12 +91,10 @@ const generateCustomerCode = async () => {
 // @access  Private
 const createCustomer = async (req, res, next) => {
   try {
-    const customerCode = await generateCustomerCode();
-    const customerData = {
-      ...req.body,
-      salesPerson: req.user._id,
-      customerCode,
-    };
+    const { codeMode = 'auto', codeDiv, codeType, codeBiz, codeZone, codeManual, customerCode: _c, ...customerData } = req.body;
+    const customerCode = await generateCustomerCode(codeMode, { codeDiv, codeType, codeBiz, codeZone, codeManual });
+    customerData.salesPerson = req.user._id;
+    customerData.customerCode = customerCode;
 
     const customer = await Customer.create(customerData);
 
