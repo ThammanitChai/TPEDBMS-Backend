@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getDirectory,
+  resetUserPassword,
   getAllSales,
   getSalesDetail,
   getAllUsers,
@@ -32,6 +33,7 @@ router.get('/', protect, adminOnly, getAllUsers);
 router.get('/sales', protect, adminOnly, getAllSales);
 router.get('/sales/:id', protect, adminOnly, getSalesDetail);
 
+router.patch('/:id/reset-password', protect, adminOnly, resetUserPassword);
 router.patch('/:id/toggle', protect, adminOnly, toggleUserStatus);
 router.patch('/:id/archive', protect, adminOnly, archiveUser);
 router.patch('/:id/restore', protect, superAdminOnly, restoreUser);

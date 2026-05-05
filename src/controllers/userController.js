@@ -280,6 +280,28 @@ const getMe = async (req, res, next) => {
   }
 };
 
+// @desc    Reset any user's password — Admin/SuperAdmin only (no current password needed)
+// @route   PATCH /api/users/:id/reset-password
+// @access  Admin
+const resetUserPassword = async (req, res, next) => {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' });
+    }
+    const target = await User.findById(req.params.id);
+    if (!target) return res.status(404).json({ message: 'ไม่พบผู้ใช้' });
+    if (target.role === 'superadmin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ message: 'ไม่มีสิทธิ์รีเซ็ตรหัสผ่าน superadmin' });
+    }
+    target.password = newPassword;
+    await target.save();
+    res.json({ message: `รีเซ็ตรหัสผ่านของ ${target.name} เรียบร้อยแล้ว` });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Change own password (requires current password)
 // @route   PATCH /api/users/me/password
 // @access  Private
@@ -477,6 +499,7 @@ const reviewTargetRequest = async (req, res, next) => {
 
 module.exports = {
   getDirectory,
+  resetUserPassword,
   getAllSales,
   getSalesDetail,
   getAllUsers,
