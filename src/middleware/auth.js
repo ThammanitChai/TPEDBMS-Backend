@@ -46,4 +46,9 @@ const approverOnly = (req, res, next) => {
   res.status(403).json({ message: 'ไม่มีสิทธิ์อนุมัติ' });
 };
 
-module.exports = { protect, adminOnly, superAdminOnly, approverOnly };
+const managerOrAdminOnly = (req, res, next) => {
+  if (APPROVER_ROLES.includes(req.user?.role)) return next();
+  res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบหรือผู้จัดการเท่านั้น' });
+};
+
+module.exports = { protect, adminOnly, superAdminOnly, approverOnly, managerOrAdminOnly };

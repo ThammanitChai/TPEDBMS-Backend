@@ -11,10 +11,10 @@ const {
   getCalendar,
   getDayStats,
 } = require('../controllers/customerController');
-const { protect, adminOnly } = require('../middleware/auth');
+const { protect, adminOnly, managerOrAdminOnly } = require('../middleware/auth');
 
-router.get('/stats/dashboard', protect, adminOnly, getDashboardStats);
-router.get('/stats/day', protect, adminOnly, getDayStats);
+router.get('/stats/dashboard', protect, managerOrAdminOnly, getDashboardStats);
+router.get('/stats/day', protect, managerOrAdminOnly, getDayStats);
 router.get('/calendar', protect, getCalendar);
 
 router.route('/')

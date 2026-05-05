@@ -237,56 +237,37 @@ const addVisit = async (req, res, next) => {
 // @access  Admin
 const getDashboardStats = async (req, res, next) => {
   try {
-    const totalCustomers = await Customer.countDocuments();
-    const totalSales = await User.countDocuments({ role: 'sales', isActive: true });
+    const divisionIds = await getDivisionSalesIds(req.user.role);
+    const customerFilter = divisionIds ? { salesPerson: { $in: divisionIds } } : {};
+
+    const totalCustomers = await Customer.countDocuments(customerFilter);
+    const totalSales = divisionIds
+      ? divisionIds.length
+      : await User.countDocuments({ role: 'sales', isActive: true });
 
     const statusCounts = await Customer.aggregate([
+      ...(divisionIds ? [{ $match: customerFilter }] : []),
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]);
 
-    // Visits per sales (last 30 days)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const salesActivity = await Customer.aggregate([
+      ...(divisionIds ? [{ $match: customerFilter }] : []),
       { $unwind: '$visits' },
       { $match: { 'visits.visitDate': { $gte: thirtyDaysAgo } } },
-      {
-        $group: {
-          _id: '$salesPerson',
-          visitCount: { $sum: 1 },
-        },
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'salesInfo',
-        },
-      },
+      { $group: { _id: '$salesPerson', visitCount: { $sum: 1 } } },
+      { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'salesInfo' } },
       { $unwind: '$salesInfo' },
-      {
-        $project: {
-          salesName: '$salesInfo.name',
-          salesEmail: '$salesInfo.email',
-          visitCount: 1,
-        },
-      },
+      { $project: { salesName: '$salesInfo.name', salesEmail: '$salesInfo.email', visitCount: 1 } },
       { $sort: { visitCount: -1 } },
     ]);
 
-    // Recent visits
     const recentVisits = await Customer.aggregate([
+      ...(divisionIds ? [{ $match: customerFilter }] : []),
       { $unwind: '$visits' },
       { $sort: { 'visits.visitDate': -1 } },
       { $limit: 10 },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'salesPerson',
-          foreignField: '_id',
-          as: 'sales',
-        },
-      },
+      { $lookup: { from: 'users', localField: 'salesPerson', foreignField: '_id', as: 'sales' } },
       { $unwind: '$sales' },
       {
         $project: {
@@ -303,13 +284,7 @@ const getDashboardStats = async (req, res, next) => {
       },
     ]);
 
-    res.json({
-      totalCustomers,
-      totalSales,
-      statusCounts,
-      salesActivity,
-      recentVisits,
-    });
+    res.json({ totalCustomers, totalSales, statusCounts, salesActivity, recentVisits });
   } catch (error) {
     next(error);
   }
@@ -403,9 +378,12 @@ const getDayStats = async (req, res, next) => {
     const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
     const end   = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 59, 59, 999));
 
+    const divisionIds = await getDivisionSalesIds(req.user.role);
+    const customerFilter = divisionIds ? { salesPerson: { $in: divisionIds } } : {};
+
     const [visits, appointments, sales] = await Promise.all([
-      // Visits completed on that day
       Customer.aggregate([
+        ...(divisionIds ? [{ $match: customerFilter }] : []),
         { $unwind: '$visits' },
         { $match: { 'visits.visitDate': { $gte: start, $lte: end } } },
         { $lookup: { from: 'users', localField: 'salesPerson', foreignField: '_id', as: 'sp' } },
@@ -425,14 +403,12 @@ const getDayStats = async (req, res, next) => {
         { $sort: { 'visit.visitDate': -1 } },
       ]),
 
-      // Customers with nextVisitDate on that day (appointments)
-      Customer.find({ nextVisitDate: { $gte: start, $lte: end }, isArchived: { $ne: true } })
+      Customer.find({ ...customerFilter, nextVisitDate: { $gte: start, $lte: end }, isArchived: { $ne: true } })
         .populate('salesPerson', 'name')
         .select('companyName contactPerson phone nextVisitDate salesPerson status'),
 
-      // Sales records for that day
       Sale.aggregate([
-        { $match: { date: { $gte: start, $lte: end } } },
+        { $match: { date: { $gte: start, $lte: end }, ...(divisionIds ? { salesPerson: { $in: divisionIds } } : {}) } },
         { $lookup: { from: 'users', localField: 'salesPerson', foreignField: '_id', as: 'sp' } },
         { $unwind: { path: '$sp', preserveNullAndEmptyArrays: true } },
         {
