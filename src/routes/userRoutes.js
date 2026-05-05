@@ -13,6 +13,7 @@ const {
   updateSalesProfile,
   getMe,
   updateMe,
+  changePassword,
   getColleagues,
   updateUserMenus,
   createTargetRequest,
@@ -24,6 +25,7 @@ const { protect, adminOnly, superAdminOnly } = require('../middleware/auth');
 router.get('/directory', protect, getDirectory);
 router.get('/me', protect, getMe);
 router.patch('/me', protect, updateMe);
+router.patch('/me/password', protect, changePassword);
 router.get('/colleagues', protect, getColleagues);
 
 router.get('/', protect, adminOnly, getAllUsers);

@@ -280,6 +280,34 @@ const getMe = async (req, res, next) => {
   }
 };
 
+// @desc    Change own password (requires current password)
+// @route   PATCH /api/users/me/password
+// @access  Private
+const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'กรุณากรอกรหัสผ่านปัจจุบันและรหัสผ่านใหม่' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' });
+    }
+
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) return res.status(404).json({ message: 'ไม่พบผู้ใช้' });
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) return res.status(401).json({ message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ message: 'เปลี่ยนรหัสผ่านเรียบร้อยแล้ว' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Update own profile (avatar, title, expertise, phone, name)
 // @route   PATCH /api/users/me
 // @access  Private
@@ -460,6 +488,7 @@ module.exports = {
   updateSalesProfile,
   getMe,
   updateMe,
+  changePassword,
   getColleagues,
   updateUserMenus,
   createTargetRequest,
