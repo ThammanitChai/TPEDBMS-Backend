@@ -2,7 +2,19 @@ const Customer = require('../models/Customer');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 
-// @desc    Get customers (own customers for sales, all for admin)
+// Helper: get salesPerson IDs for a division manager's scope
+const getDivisionSalesIds = async (role) => {
+  const divisionMap = {
+    manager_household:   'ครัวเรือน',
+    manager_industrial:  'อุตสาหกรรม',
+  };
+  const division = divisionMap[role];
+  if (!division) return null; // null = no restriction (see all)
+  const users = await User.find({ salesRoles: { $in: [division] }, isArchived: { $ne: true } }).select('_id');
+  return users.map((u) => u._id);
+};
+
+// @desc    Get customers (own for sales, division-filtered for managers, all for admin/superadmin/manager_general)
 // @route   GET /api/customers
 // @access  Private
 const getCustomers = async (req, res, next) => {
@@ -12,6 +24,9 @@ const getCustomers = async (req, res, next) => {
 
     if (req.user.role === 'sales') {
       query.salesPerson = req.user._id;
+    } else if (req.user.role === 'manager_household' || req.user.role === 'manager_industrial') {
+      const ids = await getDivisionSalesIds(req.user.role);
+      query.salesPerson = { $in: ids };
     }
     query.isArchived = { $ne: true };
 
@@ -48,11 +63,13 @@ const getCustomerById = async (req, res, next) => {
     );
     if (!customer) return res.status(404).json({ message: 'ไม่พบลูกค้า' });
 
-    if (
-      req.user.role === 'sales' &&
-      customer.salesPerson._id.toString() !== req.user._id.toString()
-    ) {
-      return res.status(403).json({ message: 'ไม่มีสิทธิ์ดูข้อมูลนี้' });
+    if (req.user.role === 'sales') {
+      if (customer.salesPerson._id.toString() !== req.user._id.toString())
+        return res.status(403).json({ message: 'ไม่มีสิทธิ์ดูข้อมูลนี้' });
+    } else if (req.user.role === 'manager_household' || req.user.role === 'manager_industrial') {
+      const ids = await getDivisionSalesIds(req.user.role);
+      const allowed = ids.some((id) => id.toString() === customer.salesPerson._id.toString());
+      if (!allowed) return res.status(403).json({ message: 'ไม่มีสิทธิ์ดูข้อมูลนี้' });
     }
 
     res.json(customer);

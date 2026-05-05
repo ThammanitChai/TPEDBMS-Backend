@@ -6,12 +6,17 @@ const Notification = require('../models/Notification');
 
 const ADMIN_ROLES = ['admin', 'superadmin', 'manager_general', 'manager_industrial', 'manager_household'];
 
-// @desc    Get all sales users (Admin only)
+// @desc    Get all sales users (Admin only) — division-filtered for manager_household/industrial
 // @route   GET /api/users/sales
 // @access  Admin
 const getAllSales = async (req, res, next) => {
   try {
-    const sales = await User.find({ role: 'sales', isArchived: { $ne: true } }).select('-password');
+    const divisionMap = { manager_household: 'ครัวเรือน', manager_industrial: 'อุตสาหกรรม' };
+    const division = divisionMap[req.user.role];
+    const salesFilter = division
+      ? { role: 'sales', isArchived: { $ne: true }, salesRoles: { $in: [division] } }
+      : { role: 'sales', isArchived: { $ne: true } };
+    const sales = await User.find(salesFilter).select('-password');
 
     // Single aggregation across all sales users — avoids loading photos
     const statsAgg = await Customer.aggregate([
