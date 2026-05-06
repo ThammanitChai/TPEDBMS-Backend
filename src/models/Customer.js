@@ -123,6 +123,7 @@ const customerSchema = new mongoose.Schema(
         avatar:   { type: String, default: '' },
       },
     ],
+    lastVisitDate: { type: Date, default: null },
     isArchived: {
       type: Boolean,
       default: false,

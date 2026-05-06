@@ -208,6 +208,7 @@ const addVisit = async (req, res, next) => {
     }
 
     customer.visits.push(req.body);
+    customer.lastVisitDate = new Date(req.body.visitDate || Date.now());
     await customer.save();
 
     // Auto-create WorkPlan entry for this visit
