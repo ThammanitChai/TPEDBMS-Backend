@@ -21,7 +21,7 @@ const {
   getTargetRequests,
   reviewTargetRequest,
 } = require('../controllers/userController');
-const { protect, adminOnly, superAdminOnly } = require('../middleware/auth');
+const { protect, adminOnly, superAdminOnly, approverOnly } = require('../middleware/auth');
 
 router.get('/directory', protect, getDirectory);
 router.get('/me', protect, getMe);
@@ -30,8 +30,8 @@ router.patch('/me/password', protect, changePassword);
 router.get('/colleagues', protect, getColleagues);
 
 router.get('/', protect, adminOnly, getAllUsers);
-router.get('/sales', protect, adminOnly, getAllSales);
-router.get('/sales/:id', protect, adminOnly, getSalesDetail);
+router.get('/sales', protect, approverOnly, getAllSales);
+router.get('/sales/:id', protect, approverOnly, getSalesDetail);
 
 router.patch('/:id/reset-password', protect, adminOnly, resetUserPassword);
 router.patch('/:id/toggle', protect, adminOnly, toggleUserStatus);
