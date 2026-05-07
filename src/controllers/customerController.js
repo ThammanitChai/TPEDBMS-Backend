@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Customer = require('../models/Customer');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
@@ -197,7 +198,9 @@ const deleteCustomer = async (req, res, next) => {
 // @access  Private
 const addVisit = async (req, res, next) => {
   try {
-    const customer = await Customer.findById(req.params.id);
+    const customer = await Customer.findById(req.params.id)
+      .select('salesPerson companyName')
+      .lean();
     if (!customer) return res.status(404).json({ message: 'ไม่พบลูกค้า' });
 
     if (
@@ -207,18 +210,44 @@ const addVisit = async (req, res, next) => {
       return res.status(403).json({ message: 'ไม่มีสิทธิ์' });
     }
 
-    customer.visits.push(req.body);
-    customer.lastVisitDate = new Date(req.body.visitDate || Date.now());
-    await customer.save();
+    const now = new Date();
+    const newVisit = {
+      _id: new mongoose.Types.ObjectId(),
+      visitDate: req.body.visitDate ? new Date(req.body.visitDate) : now,
+      notes: req.body.notes || '',
+      status: req.body.status || 'completed',
+      photos: req.body.photos || [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    const visitDate = newVisit.visitDate;
+
+    try {
+      await Customer.findByIdAndUpdate(req.params.id, {
+        $push: { visits: newVisit },
+        $set: { lastVisitDate: visitDate },
+      });
+    } catch (saveErr) {
+      if (
+        saveErr.code === 10334 ||
+        saveErr.message?.includes('too large') ||
+        saveErr.message?.includes('document size')
+      ) {
+        return res.status(413).json({
+          message: 'บันทึกไม่ได้ เนื่องจากข้อมูลลูกค้ามีขนาดใหญ่เกินไป กรุณาลดจำนวนรูปภาพ',
+        });
+      }
+      throw saveErr;
+    }
 
     // Auto-create WorkPlan entry for this visit
     try {
       const WorkPlan = require('../models/WorkPlan');
-      const visitDate = new Date(req.body.visitDate || Date.now());
-      visitDate.setHours(12, 0, 0, 0);
+      const wpDate = new Date(visitDate);
+      wpDate.setHours(12, 0, 0, 0);
       await WorkPlan.create({
         userId: req.user._id,
-        date: visitDate,
+        date: wpDate,
         type: 'visit',
         note: req.body.notes || '',
         customerName: customer.companyName || '',
@@ -227,7 +256,7 @@ const addVisit = async (req, res, next) => {
       });
     } catch (_) {}
 
-    res.status(201).json(customer);
+    res.status(201).json(newVisit);
   } catch (error) {
     next(error);
   }
