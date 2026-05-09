@@ -44,8 +44,9 @@ const getCustomers = async (req, res, next) => {
 
     const customers = await Customer.find(query)
       .populate('salesPerson', 'name email avatar')
-      .select('-visits')
-      .sort({ createdAt: -1 });
+      .select('-visits -photos -projectContacts -followUpDetails -mapLink -location')
+      .sort({ updatedAt: -1 })
+      .lean();
 
     res.json(customers);
   } catch (error) {

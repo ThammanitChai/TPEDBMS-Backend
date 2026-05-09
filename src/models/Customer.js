@@ -132,6 +132,10 @@ const customerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-customerSchema.index({ companyName: 'text', contactPerson: 'text' });
+customerSchema.index({ companyName: 'text', contactPerson: 'text', phone: 'text', customerCode: 'text' });
+customerSchema.index({ salesPerson: 1, isArchived: 1 });
+customerSchema.index({ status: 1 });
+customerSchema.index({ lastVisitDate: -1 });
+customerSchema.index({ updatedAt: -1 });
 
 module.exports = mongoose.model('Customer', customerSchema);
