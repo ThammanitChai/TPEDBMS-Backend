@@ -20,7 +20,7 @@ const getDivisionSalesIds = async (role) => {
 // @access  Private
 const getCustomers = async (req, res, next) => {
   try {
-    const { search, status, page = 1, limit = 100 } = req.query;
+    const { search, status, page = 1, limit = 100, salesPersonId } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
     let query = {};
 
@@ -28,7 +28,11 @@ const getCustomers = async (req, res, next) => {
       query.salesPerson = req.user._id;
     } else if (req.user.role === 'manager_household' || req.user.role === 'manager_industrial') {
       const ids = await getDivisionSalesIds(req.user.role);
-      query.salesPerson = { $in: ids };
+      query.salesPerson = salesPersonId && ids.map(String).includes(salesPersonId)
+        ? salesPersonId
+        : { $in: ids };
+    } else if (salesPersonId) {
+      query.salesPerson = salesPersonId;
     }
     query.isArchived = { $ne: true };
 
