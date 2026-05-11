@@ -20,7 +20,8 @@ const getDivisionSalesIds = async (role) => {
 // @access  Private
 const getCustomers = async (req, res, next) => {
   try {
-    const { search, status } = req.query;
+    const { search, status, page = 1, limit = 100 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
     let query = {};
 
     if (req.user.role === 'sales') {
@@ -42,13 +43,18 @@ const getCustomers = async (req, res, next) => {
 
     if (status) query.status = status;
 
-    const customers = await Customer.find(query)
-      .populate('salesPerson', 'name email avatar')
-      .select('-visits -photos -projectContacts -followUpDetails -mapLink -location')
-      .sort({ updatedAt: -1 })
-      .lean();
+    const [customers, total] = await Promise.all([
+      Customer.find(query)
+        .populate('salesPerson', 'name email avatar')
+        .select('-visits -photos -projectContacts -followUpDetails -mapLink -location -companyImage')
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+      Customer.countDocuments(query),
+    ]);
 
-    res.json(customers);
+    res.json({ customers, total, page: Number(page), limit: Number(limit) });
   } catch (error) {
     next(error);
   }
