@@ -46,7 +46,7 @@ const getCustomers = async (req, res, next) => {
     const [customers, total] = await Promise.all([
       Customer.find(query)
         .populate('salesPerson', 'name email avatar')
-        .select('-visits -photos -projectContacts -followUpDetails -mapLink -location -companyImage')
+        .select('-visits -photos -projectContacts -followUpDetails -mapLink -location')
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(Number(limit))
