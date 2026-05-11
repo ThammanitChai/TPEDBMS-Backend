@@ -40,11 +40,12 @@ const getCustomers = async (req, res, next) => {
     query.isArchived = { $ne: true };
 
     if (search) {
+      const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { companyName: { $regex: search, $options: 'i' } },
-        { contactPerson: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } },
-        { customerCode: { $regex: search, $options: 'i' } },
+        { companyName: { $regex: safeSearch, $options: 'i' } },
+        { contactPerson: { $regex: safeSearch, $options: 'i' } },
+        { phone: { $regex: safeSearch, $options: 'i' } },
+        { customerCode: { $regex: safeSearch, $options: 'i' } },
       ];
     }
 
@@ -418,9 +419,12 @@ const getCalendar = async (req, res, next) => {
 const getDayStats = async (req, res, next) => {
   try {
     const Sale = require('../models/Sale');
-    const d = req.query.date ? new Date(req.query.date) : new Date();
-    const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-    const end   = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 59, 59, 999));
+    // Always treat the incoming date string as Bangkok date (UTC+7)
+    const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
+    const dateStr = req.query.date || new Date(Date.now() + TZ_OFFSET_MS).toISOString().slice(0, 10);
+    const [y, mo, day] = dateStr.split('-').map(Number);
+    const start = new Date(Date.UTC(y, mo - 1, day, 0, 0, 0, 0));
+    const end   = new Date(Date.UTC(y, mo - 1, day, 23, 59, 59, 999));
 
     const divisionIds = await getDivisionSalesIds(req.user.role);
     const customerFilter = divisionIds ? { salesPerson: { $in: divisionIds } } : {};
