@@ -177,6 +177,10 @@ const updateCustomer = async (req, res, next) => {
 
     const { customerCode, codeMode, codeDiv, codeType, codeBiz, codeZone, codeManual, ...updateData } = req.body;
     Object.assign(customer, updateData);
+    // Object.assign doesn't trigger Mongoose's array dirty tracking
+    ['photos', 'tags', 'projectContacts', 'visits'].forEach((arr) => {
+      if (arr in updateData) customer.markModified(arr);
+    });
     await customer.save();
 
     res.json(customer);
